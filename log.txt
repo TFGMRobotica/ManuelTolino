@@ -1,0 +1,133 @@
+Installing VM Guest Additions:
+
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt install build-essential dkms linux-headers-$(uname -r)
+
+*AutoRun software from guest additions VM, run from terminal VBoxLinuxadditions.run with sudo, then reboot
+*Check:
+lsmod | grep vboxguest
+*Check Ok, reconfigure and snapshot
+
+sudo apt install git
+
+*ENABLE ACCESS TO VM SHARED FOLDER
+sudo adduser $USER vboxsf
+
+*Executed PX4 ROS gazebo .sh install script. Failure due to missing import future
+ *sudo apt-get install python3-pip
+ *pip3 install future
+sudo apt-get install python-pip
+pip install -U future 
+
+wget https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_melodic.sh
+bash ubuntu_sim_ros_melodic.sh
+*error when installed pyulog, so executed again the script and in the meantime, installed
+
+pip install pyulog==0.6.0
+sudo apt-get install ros-melodic-geographic-msgs
+sudo apt-get install libgeographic-dev ros-melodic-geographic-msgs
+
+sudo apt-get install python3-pip
+pip3 install kconfiglib
+pip3 install --user empy
+pip3 install --user pyros-genmsg
+pip3 install --user packaging toml numpy jinga2 jsonschema
+
+*Something wrong with jmavsim, needed:
+sudo apt install openjdk-11-jdk
+
+
+
+****
+
+
+Setting python 2.6 as default on Linux
+
+If you have a later version than 2.6 you'll need to set 2.6 as the default Python. Later versions would be 2.7 and 3.1; see what you have by typing
+
+python -V
+at the terminal. For purposes of this example we'll assume you have 3.1 installed. You'll next need to execute the following commands:
+sudo apt-get install python2.7 idle-python2.7
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 10
+sudo update-alternatives --config python
+This last command will allow you to choose which version of python to use by default. If you have done everything above correctly, python2.6 should already be set as the default. If it is not, choose it to be the default. From now on, running python should start version 2.6.
+
+Undoing These Changes
+
+In some cases (e.g., installing or updating certain packages), you'll get an error message if you've run the commands above. To update these packages, you'll have to temporarily undo these changes. Here's how to do that:
+
+sudo update-alternatives --remove-all python
+sudo ln -s python3.1 /usr/bin/python
+Once you're done updating these packages, execute the commands at the top to set python2.6 as the default again.
+
+
+*****
+*****Hint after installing ROS: edit .bashrc and use . .bashrc to reload the file.
+
+*Downloaded QGROUNDCONTROL, added permissions, launched appimage
+
+roslaunch mavros px4.launch fcu_url:="udp://:14540@127.0.0.1:14557"
+
+*run make px4 firmware in its directory
+
+*Tried to launch script mission_test.py
+pip install px4tools
+
+*Missing package basemap
+pip install --user https://github.com/matplotlib/basemap/archive/v1.1.0.zip
+pip install pyproj==1.9.6
+pip install control==0.8.3
+pip install pymavlink
+
+
+*Trying to compile now for gazebo and the launchers
+
+git submodule update --recursive
+make distclean
+
+*Gazeo not compiling with px4.... cmake error unknown. Restarting the full script.
+sudo apt-get install libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev
+
+*With a brand new unzip from git, jmavsim works. In the same build, lets try gazebo without
+* cleaning -mm not recommended:  runs, but black screen.... CONCLUSSION: DISABLE 3D ACCEL IN VIRBUALBOX CONFIG
+
+***
+Hey, @Ismaiel welcome to the forum. As can be seen in this issue this error is probably caused because the ~/.ignition/fuel/config.yaml file still points to the old ignition fuel domain. This error can be solved by replacing url: https://api.ignitionfuel.org by url: https://api.ignitionrobotics.org inside the ~/.ignition/fuel/config.yaml file.
+***
+
+WARNING: Failed to import lxml module etree. Are lxml, libxml2 and libxslt installed? XML validation will not be performed
+
+*** For using the offboard mavros control with the last version:
+
+
+    Use comment of benjinne.
+    Run simulation and run QGroundControl. In Vehicle setup->Parameters set COM_RCL_EXCEPT=4.
+
+    Use an older version of autopilot.
+    Personally, I am using the latest stable version of autopilot at the moment (available by tag v1.12.3). Can be downloaded using this command:
+    git clone --recurse-submodules --branch v1.12.3 https://github.com/PX4/PX4-Autopilot.git
+
+***GAZEBO+ROS
+
+no_sim=1 make px4_sitl_default gazebo
+make px4_sitl gazebo_typhoon_h480
+
+Modify iris.world in px4-firmware/Tools/sitl_gazebo/worlds:
+    <include>
+      <uri>model://iris_fpv_cam</uri>
+source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+roslaunch gazebo_ros empty_world.launch world_name:=$(pwd)/Tools/sitl_gazebo/worlds/iris.world
+
+****** IMPORTANT - FOR INSTALLING ARUCO MARKERS:
+Install them on the PX4/Tools/sitl_gazebo/models
+
+
+make px4_sitl gazebo_typhoon_h480
+https://github.com/naveenbiitk/gazebo_simulation
+
+** IMPORTANT: run source devel/setup.bash before or after catkin_make then rebuild
+** image resolution is changed within the .sdf model of the drone
+
+
