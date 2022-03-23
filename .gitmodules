@@ -1,4 +1,0 @@
-[submodule "src/modules/mavlink/mavlink"]
-	path = PX4-Autopilot
-	url = https://github.com/ManuelTolino/PX4-Autopilot
-	branch = master
