@@ -9,3 +9,27 @@ El entoro de desarrollo de este repositorio se basa en la plataforma [Dronecode]
 source /opt/ros/noetic/setup.bash
 catkin_make
 ```
+
+## Chuleta Github:
+
+Ver branch y estado:
+```
+git status
+```
+Seleccionar rama (en los submódulos debería funcionar actualizándolo a la última rama de su repo original)
+```
+git checkout [e.g master]
+```
+Para clonar el repo y los submódulos correctamente:
+```
+git clone --recurse-submodules [LINK DE GITHUB]
+```
+Para actualizar submódulo a la última versión en su repo original:
+```
+git submodule update --remote
+```
+Para añadir un nuevo submódulo al repo:
+```
+git submodule add [LINK DE GITHUB] [Ruta y carpeta final renombrante]
+```
+Link recomendado: https://chrisjean.com/git-submodules-adding-using-removing-and-updating/
