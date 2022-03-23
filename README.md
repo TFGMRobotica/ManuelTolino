@@ -7,7 +7,9 @@ El entoro de desarrollo de este repositorio se basa en la plataforma [Dronecode]
 
 ```
 source /opt/ros/noetic/setup.bash
+cd Noetic_ws
 catkin_make
+source devel/setup.bash
 ```
 
 ## Chuleta Github:
@@ -24,7 +26,7 @@ Para clonar el repo y los submódulos correctamente:
 ```
 git clone --recurse-submodules [LINK DE GITHUB]
 ```
-Para actualizar submódulo a la última versión en su repo original:
+Para actualizar submódulo a la última versión que se encuentre en su repo original:
 ```
 git submodule update --remote
 ```
