@@ -5,11 +5,20 @@ El entoro de desarrollo de este repositorio se basa en la plataforma [Dronecode]
 1. Instalar ROS Noetic
 2. Seguir los pasos para la instalación de la [Developer Toolchain](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo) de PX4. 
 
+Abrir una instancia de QGroundControl y dejar en el background.
+Lanzar el simulador junto el autopiloto:
+```
+make px4_sitl gazebo
+```
 ```
 source /opt/ros/noetic/setup.bash
 cd Noetic_ws
 catkin_make
 source devel/setup.bash
+rosrun roscpptestonly roscpptestonly_node
+```
+```
+Lanzar script de python offboardscript.py
 ```
 
 ## Chuleta Github:
