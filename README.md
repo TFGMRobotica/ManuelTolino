@@ -37,7 +37,7 @@ git clone --recurse-submodules [LINK DE GITHUB]
 ```
 Para actualizar submódulo a la última versión que se encuentre en su repo original:
 ```
-git submodule update --remote
+git submodule update --remote (op. nombrar ruta y/o carpeta)
 ```
 Para añadir un nuevo submódulo al repo:
 ```
