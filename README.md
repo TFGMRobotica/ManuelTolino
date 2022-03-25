@@ -1,11 +1,18 @@
 # Entorno de investigación de sistemas de robótica aérea
 ## Requisitos generales
 El entoro de desarrollo de este repositorio se basa en la plataforma [Dronecode](https://www.dronecode.org/). 
-El desarrollo principalmente se trabaja sobre el stack del autopiloto PX4. Es necesario disponer de todo el 'Toolchain' de desarrollo de la plataforma para poder trabajar con este repositorio. Se encuentra en su carpeta como submódulo la última versión a fecha de 22/03/2022 del stack autopilot PX4, con modificaciones propias. Para poder desarrollar y utilizar este repositorio, se deben seguir las instrucciones proporcionadas en la web de desarrollo de PX4. Se puede trabajar con Ubuntu 18 o Ubuntu 20. Como las versiones de ROS dependen según la versión de Ubuntu. En un primer lugar sólo se va a trabajar con Ubuntu 20. Si hay alguna funcionalidad requerida por la versión anterior, se creará una documentación a parte partiendo desde cero.
+El desarrollo principalmente se trabaja sobre el stack del autopiloto PX4. Es necesario disponer de todo el 'Toolchain' de desarrollo de la plataforma para poder trabajar con este repositorio. 
+
+Se encuentra en su carpeta como submódulo la última versión a fecha de 22/03/2022 del stack autopilot PX4, con modificaciones propias. Para poder desarrollar y utilizar este repositorio, se deben seguir las instrucciones proporcionadas en la web de desarrollo de PX4.
+
+En un primer lugar sólo se va a trabajar con Ubuntu 20. Si hay alguna funcionalidad requerida por la versión anterior, se creará una documentación a parte partiendo desde cero.
+
 *El desarrollo se está realizando sobre Ubuntu 20.4 actualmente*
+
 1. Instalar ROS Noetic
 2. Seguir los pasos para la instalación de PX4: 
 [Developer Toolchain - Ubuntu 20](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo)
+
 [Developer Toolchain - Ubuntu 18 y ROS Melodic sólo](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo) 
 3. Instalar OpenCV 4+
 4. Comprobar el funcionamiento correcto de Gazebo
