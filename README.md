@@ -12,7 +12,7 @@ En un primer lugar sólo se va a trabajar con Ubuntu 20. Si hay alguna funcional
 1. Instalar ROS Noetic
 2. Seguir los pasos para la instalación de PX4: 
 
-[Developer Toolchain - Ubuntu 20](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo)
+[Developer Toolchain - Ubuntu 20](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html)
 
 [Developer Toolchain - Ubuntu 18 y ROS Melodic sólo](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo)
 
