@@ -11,12 +11,16 @@ En un primer lugar sólo se va a trabajar con Ubuntu 20. Si hay alguna funcional
 
 1. Instalar ROS Noetic
 2. Seguir los pasos para la instalación de PX4: 
+
 [Developer Toolchain - Ubuntu 20](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo)
 
-[Developer Toolchain - Ubuntu 18 y ROS Melodic sólo](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo) 
+[Developer Toolchain - Ubuntu 18 y ROS Melodic sólo](https://docs.px4.io/master/en/dev_setup/dev_env_linux_ubuntu.html#rosgazebo)
+
 3. Instalar OpenCV 4+
 4. Comprobar el funcionamiento correcto de Gazebo
+
 Abrir una instancia de QGroundControl y dejar en el background.
+
 Lanzar el simulador junto el autopiloto:
 ```
 cd PX4-Autopilot
@@ -30,6 +34,7 @@ Lanzar script de python offboardscript.py
 ## Simulación de detección de marcadores [ArUco](https://www.uco.es/investiga/grupos/ava/node/26)
 # Programa de prueba con simulación en Gazebo y Quadrotor IRIS
 Para realizar una prueba de funcionamiento con Gazebo, PX4, y la detección de marcadores ArUco con OpenCV 4 utilizar el nodo **roscpptestonly**
+
 1. Lanzar QGroundControl en el background
 2. Lanzar PX4 en SITL Gazebo con:
 ```
@@ -37,6 +42,7 @@ cd PX4-Autopilot
 make px4_sitl gazebo
 ```
 (El Gazebo World por defecto contiene el Iris con una cámara frontal simulada y un marcador ArUco para hacer la prueba, si no es así, pruebe a añadir un marcador ArUco a mano, y utilice la simulación del Typhoon con *make px4_sitl gazebo_typhoon_h480* pues este ya incluye una cámara simulada por defecto)
+
 3. Lanzar el nodo *roscpptestonly*
 ```
 source /opt/ros/noetic/setup.bash
@@ -46,6 +52,7 @@ source devel/setup.bash
 rosrun roscpptestonly roscpptestonly_node
 ```
 4. Debe aparecer una ventana con el input de vídeo desde el drone de Gazebo. Y si el marcador está enfocado, deben aparecer superpuestos sus contornos de detección.
+
 Nota: Ruta por defecto de los headers de OpenCV 4 - para VSCode por ejemplo:
 ```
 /usr/include/opencv4/
