@@ -67,3 +67,48 @@ Para añadir un nuevo submódulo al repo:
 git submodule add [LINK DE GITHUB] [Ruta y carpeta final renombrante]
 ```
 Link recomendado: https://chrisjean.com/git-submodules-adding-using-removing-and-updating/
+
+# ROS 2 + RTPS + PX4
+Para compilar el workspace del puente ROS 2 - PX4:
+```
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELWITHDEBINFO --symlink-install --packages-skip ros1_bridge
+```
+Pero una vez compilado por primera vez, se puede omitir el paquete px4_msgs:
+```
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELWITHDEBINFO --symlink-install --packages-skip px4_msgs ros1_bridge
+```
+Tras instalar ROS 2, puede aparecer una advertencia sobre el contexto DDS. Instalar el siguiente paquete si es necesario:
+```
+sudo apt-get install ros-foxy-rmw-connext-cpp
+```
+
+Para comprobar el funcionamiento correcto del puente de comunicaciones entre PX4 y ROS2:
+Navegar a la carpeta del repositorio de PX4 y compilar la versión de simulador que incluye el cliente RTPS:
+```
+cd PX4-Autopilot
+make px4_sitl_rtps gazebo
+```
+En otra terminal, ejecutamos la aplicación de prueba "listerner" que escucha mensajes del topic **sensor_combined** y imprime los valores en pantalla:
+```
+source ~/px4_ros_com_ros2/install/setup.bash
+ros2 launch px4_ros_com sensor_combined_listener.launch.py
+```
+Y ahora solo falta activar la instancia del puente PX4-ROS 2 mediante RTPS, el 'daemon':
+```
+source ~/px4_ros_com_ros2/install/setup.bash
+micrortps_agent -t UDP
+```
+Al activar este programa, se abre el canal de comunicación, y la aplicación "listerner" debería comenzar a recibir los mensajes desde PX4 y mostrarlos en pantalla.
+
+Vamos a probar ahora a enviar a PX4 mensajes desde ROS 2.
+
+Se inicia el simulador con capacidad RTPS como antes:
+```
+cd PX4-Autopilot
+make px4_sitl_rtps gazebo
+```
+Ejecutamos el nodo de ejemplo
+```
+ros2 run px4_ros_com debug_vect_advertiser
+```
+Este nodo enviará un vector de prueba a PX4 con los valores 0, 3 y 4. Una vez lo ejecutamos, podemos abrir QGroundControl
