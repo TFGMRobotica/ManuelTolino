@@ -46,6 +46,7 @@ find_package("${rmw_implementation}" REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 
 find_package(PythonInterp 3 REQUIRED)
 if(ROS_DISTRO IN_LIST ROS_DISTROS)
@@ -65,7 +66,8 @@ include(GenerateMicroRTPSAgent)
 # Setup targets #
 #################
 
-include_directories(include)
+include_directories(include
+${OpenCV_INCLUDE_DIRS})
 
 function(custom_executable subfolder target)
   add_executable(${target} src/${subfolder}/${target}.cpp)
@@ -97,6 +99,11 @@ custom_executable(examples/listeners sensor_combined_listener)
 custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
+
+target_link_libraries(debug_vect_advertiser
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
 
 ############
 # Install ##
