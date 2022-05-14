@@ -64,7 +64,8 @@ public:
 			std::string name = "test";
 			std::copy(name.begin(), name.end(), debug_vect.name.begin());
 			cv::String videoInput = "0";
-    		cv::VideoCapture in_video;
+    		//cv::VideoCapture in_video;
+			VideoCapture in_video(0); 
 
     		/*Parametros copiados de inet
     		const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
@@ -88,7 +89,7 @@ public:
 			/* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
 			/* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
 			std::vector<cv::Vec3d> rvecs, tvecs; 
-			in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+			//in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 			if (!in_video.isOpened()) {
 				std::cerr << "failed to open video input: " << videoInput << std::endl;
 			}
