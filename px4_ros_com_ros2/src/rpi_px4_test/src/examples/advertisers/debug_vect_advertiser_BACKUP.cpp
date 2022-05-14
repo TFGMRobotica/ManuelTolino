@@ -1,3 +1,5 @@
+/* Backup of the original content + Marker Detect stuff */
+
 /****************************************************************************
  *
  * Copyright 2018 PX4 Development Team. All rights reserved.
@@ -63,6 +65,7 @@ public:
 			debug_vect.timestamp = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 			std::string name = "test";
 			std::copy(name.begin(), name.end(), debug_vect.name.begin());
+
 			cv::String videoInput = "0";
     		cv::VideoCapture in_video;
 
@@ -96,8 +99,8 @@ public:
 			cv::Ptr<cv::aruco::Dictionary> dictionary =
 			cv::aruco::getPredefinedDictionary( \
 			cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
-    		while (in_video.grab()) {
-			//if (in_video.grab()) {
+    		//while (in_video.grab()) {
+			if (in_video.grab()) {
 				//bool gotframe = in_video.grab();
 				cv::Mat image, image_copy;
 				in_video.retrieve(image);
@@ -152,19 +155,20 @@ public:
 					printf("X1=%i X2=%i X3=%i X4=%i\nY1=%i Y2=%i Y3=%i Y4=%i\n", int(corner1.x), int(corner2.x), int(corner3.x), int(corner4.x),
 														int(corner1.y), int(corner2.y), int(corner3.y), int(corner4.y));
 					*/
-					debug_vect.z = 4.0;
-					this->publisher_->publish(debug_vect);
-					RCLCPP_INFO(this->get_logger(), "\033[97m Publishing debug_vect: time: %llu x: %f y: %f z: %f \033[0m",
-					debug_vect.timestamp, debug_vect.x, debug_vect.y, debug_vect.z);
-					char key = (char)cv::waitKey(5);
-        			if (key == 27)
-            			break;
             		};
-					in_video.release();
+			
+        	
+			//char key = (char)cv::waitKey(5);
+        	//	if (key == 27)
+            //	break;
 				};
 			//in_video.release();
 			//debug_vect.x = x_dev;
-			//debug_vect.y = y_dev;			
+			//debug_vect.y = y_dev;
+			debug_vect.z = 4.0;
+			RCLCPP_INFO(this->get_logger(), "\033[97m Publishing debug_vect: time: %llu x: %f y: %f z: %f \033[0m",
+                                debug_vect.timestamp, debug_vect.x, debug_vect.y, debug_vect.z);
+			this->publisher_->publish(debug_vect);
 		};
 		timer_ = this->create_wall_timer(5ms, timer_callback);
 	}
@@ -180,6 +184,8 @@ int main(int argc, char *argv[])
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
 	rclcpp::spin(std::make_shared<DebugVectAdvertiser>());
+
 	rclcpp::shutdown();
+	// in_video.release();
 	return 0;
 }
