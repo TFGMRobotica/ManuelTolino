@@ -58,7 +58,7 @@ public:
 			cv::Ptr<cv::aruco::Dictionary> dictionary =
 			cv::aruco::getPredefinedDictionary( \
 			cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
-    		while (in_video.grab()) {
+    		//while (in_video.grab()) {
 			//if (in_video.grab()) {
 				//bool gotframe = in_video.grab();
 				cv::Mat image, image_copy;
@@ -109,7 +109,7 @@ public:
 					printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
 					debug_vect.x = x_dev;
 					debug_vect.y = y_dev;
-					imshow("Detected markers", image_copy);
+					//imshow("Detected markers", image_copy);
 					/*  DEBUGGING PRINT of 
 					printf("X1=%i X2=%i X3=%i X4=%i\nY1=%i Y2=%i Y3=%i Y4=%i\n", int(corner1.x), int(corner2.x), int(corner3.x), int(corner4.x),
 														int(corner1.y), int(corner2.y), int(corner3.y), int(corner4.y));
@@ -118,17 +118,17 @@ public:
 					this->publisher_->publish(debug_vect);
 					RCLCPP_INFO(this->get_logger(), "\033[97m Publishing debug_vect: time: %llu x: %f y: %f z: %f \033[0m",
 					debug_vect.timestamp, debug_vect.x, debug_vect.y, debug_vect.z);
-					char key = (char)cv::waitKey(5);
-        			if (key == 27)
-            			break;
-            		};
-					in_video.release();
+					//char key = (char)cv::waitKey(5);
+        			//if (key == 27)
+            		//	break;
+            		//};
+					//in_video.release();
 				};
 			//in_video.release();
 			//debug_vect.x = x_dev;
 			//debug_vect.y = y_dev;			
 		};
-		timer_ = this->create_wall_timer(5ms, timer_callback);
+		timer_ = this->create_wall_timer(1ms, timer_callback);
 	}
 
 private:
