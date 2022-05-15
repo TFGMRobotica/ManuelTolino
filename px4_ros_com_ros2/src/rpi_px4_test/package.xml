@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>px4_ros_com</name>
+  <name>rpi_px4_test</name>
   <version>0.1.0</version>
   <description>Package to interface ROS 2 with PX4</description>
 
@@ -17,6 +17,7 @@
   <build_depend>fastrtps</build_depend>
   <build_depend>fastcdr</build_depend>
   <build_depend>ros_environment</build_depend>
+   <build_depend>opencv2</build_depend>
 
   <depend>builtin_interfaces</depend>
   <depend>rclcpp</depend>

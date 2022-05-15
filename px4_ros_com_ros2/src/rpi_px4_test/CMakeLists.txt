@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(px4_ros_com)
+project(rpi_px4_test)
 
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
