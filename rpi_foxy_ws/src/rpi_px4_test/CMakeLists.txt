@@ -99,6 +99,7 @@ custom_executable(examples/listeners sensor_combined_listener)
 custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
+custom_executable(examples/advertisers opencv_debug)
 
 target_link_libraries(debug_vect_advertiser
 ${catkin_LIBRARIES}
