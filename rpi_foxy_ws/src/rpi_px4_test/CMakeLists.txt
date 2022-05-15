@@ -105,6 +105,10 @@ target_link_libraries(debug_vect_advertiser
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
+target_link_libraries(opencv_debug
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
 
 ############
 # Install ##
