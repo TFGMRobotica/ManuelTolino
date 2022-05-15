@@ -60,7 +60,7 @@ public:
 			cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
     		//while (in_video.grab()) {
 			//if (in_video.grab()) {
-				//bool gotframe = in_video.grab();
+				bool gotframe = in_video.grab();
 				cv::Mat image, image_copy;
 				in_video.retrieve(image);
 				image.copyTo(image_copy);
