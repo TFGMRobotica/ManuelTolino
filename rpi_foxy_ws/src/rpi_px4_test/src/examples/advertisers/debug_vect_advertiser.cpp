@@ -138,7 +138,7 @@ private:
 
 int main(int argc, char *argv[])
 {
-	std::cout << "Starting debug_vect advertiser node..." << std::endl;
+	std::cout << "Starting the debug_vect advertiser node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
 	rclcpp::spin(std::make_shared<DebugVectAdvertiser>());
