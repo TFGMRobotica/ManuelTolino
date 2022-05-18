@@ -1,74 +1,63 @@
 #/*
 
-File: opencv_debug.cpp
+File: debug_vect_advertiser.cpp
 
 Author: Manuel Tolino Contreras
 
-Decription: This file contains the code intended to generate a node which should
-capture a gstreamer video input and detect ArUco markers. The detected
-markers should be represented in real time in a windows superposed with
-the video feed.
+Description:
 
 */
 
 #include <chrono>
+#include <iostream>
+#include <cstdlib>
 #include <rclcpp/rclcpp.hpp>
 #include <px4_msgs/msg/debug_vect.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/videoio.hpp>
-#include <iostream>
-#include <cstdlib>
-    /*cv::CommandLineParser parser(argc, argv, keys);
-    parser.about(about);
 
-    if (parser.get<bool>("h")) {
-        parser.printMessage();
-        return 0;
-    }
-    Parametros copiados de inet
-    const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 803.9233,  0,         286.5234,
-                                  0,         807.6013,  245.9685,
-                                  0,         0,         1);
-                                  */
-     const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
+/**************** OpenCV parameters *****************/
+
+cv::String videoInput = "0";
+
+/* ArUco Dictionary ID*/
+cv::Ptr<cv::aruco::Dictionary> dictionary =
+        cv::aruco::getPredefinedDictionary( \
+        cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
+	/*namespace {
+	const char* about = "Detect ArUco marker images";
+	const char* keys  =
+		"{d        |16    | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, "
+		"DICT_4X4_250=2, DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, "
+		"DICT_5X5_250=6, DICT_5X5_1000=7, DICT_6X6_50=8, DICT_6X6_100=9, "
+		"DICT_6X6_250=10, DICT_6X6_1000=11, DICT_7X7_50=12, DICT_7X7_100=13, "
+		"DICT_7X7_250=14, DICT_7X7_1000=15, DICT_ARUCO_ORIGINAL = 16}"
+		"{h        |false | Print help }"
+		"{v        |<none>| Custom video source, otherwise '0' }"
+		;
+	}*/
+float fov_horiz = 1.0 ;
+float fov_vert = 1.0 ;
+
+/* Camera intrinsic matrix */
+const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
                                << 530.8269276712998,  0.0,       320.5,
                                   0.0,       530.8269276712998,  240.5,
                                   0.0,       0.0,                  1.0);
 
-    /* NO distorsion for the virtual camera*/
-    const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
-    /* const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.1431, -0.4943, 0, 0, 0); */
+/* Distortion*/
+
+const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
+const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
 
 
-    const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0);// La foto corregida se utiliza para la detección
-    float fov_horiz = 1.0 ;
-    float fov_vert = 1.0 ;
-    cv::String videoInput = "0";
-    //int dictionaryId = parser.get<int>("d");
-    cv::VideoCapture in_video(0);
-        cv::Ptr<cv::aruco::Dictionary> dictionary =
-        cv::aruco::getPredefinedDictionary( \
-        cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
+/**************** OpenCV global variables *****************/
 
-    /* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
-    /* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
-    std::vector<cv::Vec3d> rvecs, tvecs;
+ /* Video object  -1st device - rpi camera module*/
+cv::VideoCapture in_video(0);
+
 using namespace std::chrono_literals;
-
-namespace {
-const char* about = "Detect ArUco marker images";
-const char* keys  =
-        "{d        |16    | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, "
-        "DICT_4X4_250=2, DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, "
-        "DICT_5X5_250=6, DICT_5X5_1000=7, DICT_6X6_50=8, DICT_6X6_100=9, "
-        "DICT_6X6_250=10, DICT_6X6_1000=11, DICT_7X7_50=12, DICT_7X7_100=13, "
-        "DICT_7X7_250=14, DICT_7X7_1000=15, DICT_ARUCO_ORIGINAL = 16}"
-        "{h        |false | Print help }"
-        "{v        |<none>| Custom video source, otherwise '0' }"
-        ;
-}
 
 class DebugVectAdvertiser : public rclcpp::Node
 {
@@ -95,6 +84,7 @@ public:
         image.copyTo(image_copy);
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners;
+	std::vector<cv::Vec3d> rvecs, tvecs;
         cv::aruco::detectMarkers(image, dictionary, corners, ids);
 
         int res_horizontal = image_copy.size().width;
@@ -108,6 +98,8 @@ public:
         if (ids.size() > 0)
             {
             /*Estimate pose function*/
+	    /* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
+            /* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
             cv::aruco::estimatePoseSingleMarkers(corners, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
             cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
 
