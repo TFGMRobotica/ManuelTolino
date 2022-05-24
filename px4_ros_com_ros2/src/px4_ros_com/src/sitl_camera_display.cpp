@@ -63,8 +63,8 @@ int main(int argc, char **argv)
 
 
     const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0);// La foto corregida se utiliza para la detección
-    float fov_horiz = 1.0 ;
-    float fov_vert = 1.0 ;
+    //float fov_horiz = 1.0 ;
+    //float fov_vert = 1.0 ;
 
     /* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
     /* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
@@ -119,8 +119,8 @@ int main(int argc, char **argv)
         std::vector<std::vector<cv::Point2f>> corners;
         cv::aruco::detectMarkers(image, dictionary, corners, ids);
 
-        int res_horizontal = image_copy.size().width;
-        int res_vertical = image_copy.size().height;
+        // int res_horizontal = image_copy.size().width;
+        // int res_vertical = image_copy.size().height;
 
         /*  DEBUGGING PRINT of camera input total pixels */
         // printf("Width: %i  Height: %i\n",horizontal_res,vertical_res);   
@@ -133,12 +133,14 @@ int main(int argc, char **argv)
             cv::aruco::estimatePoseSingleMarkers(corners, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
             cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
 
-            for (int i = 0; i < rvecs.size(); ++i) 
+            for (int i = 0; i < int(rvecs.size()); ++i) 
             {   /* Draw axis for each marker detected*/
                 auto rvec = rvecs[i];
                 auto tvec = tvecs[i];
                 cv::aruco::drawAxis(image_copy, intrinsic_matrix, distCoeffs, rvec, tvec, 0.1);
                 }
+            
+            /*
             int marker_index = 0;    
             auto selected_marker = corners[marker_index];
             auto corner1 = selected_marker[0]; // Top Left, small ref. red square
@@ -154,7 +156,7 @@ int main(int argc, char **argv)
 
             double x_dev = (x_avg - res_horizontal * .5) * fov_horiz / res_horizontal;
             double y_dev = (y_avg - res_vertical * .5) * fov_vert / res_vertical;
-
+            */
             /*  DEBUGGING PRINT of Deviation    */
 
             // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);

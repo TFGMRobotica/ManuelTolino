@@ -10,7 +10,8 @@ Description:
 #include <iostream>
 #include <cstdlib>
 #include <rclcpp/rclcpp.hpp>
-#include <px4_msgs/msg/debug_vect.hpp>
+#include <px4_msgs/msg/irlock_report.hpp>
+#include <px4_msgs/msg/timesync.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/videoio.hpp>
@@ -74,19 +75,29 @@ public:
 	DebugVectAdvertiser() : Node("debug_vect_advertiser") {
 
 #ifdef ROS_DEFAULT_API
-		publisher_ = this->create_publisher<px4_msgs::msg::DebugVect>("fmu/debug_vect/in", 10);
+		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
 #else
-		publisher_ = this->create_publisher<px4_msgs::msg::DebugVect>("fmu/debug_vect/in");
+		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
 
 #endif
+
+		// get common timestamp
+		timesync_sub_ =
+			this->create_subscription<px4_msgs::msg::Timesync>("fmu/timesync/out", 10,
+				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
+					timestamp_.store(msg->timestamp);
+				});
+
+
 		auto timer_callback =
 		[this]()->void {
 
             /* ROS2 */
-			auto debug_vect = px4_msgs::msg::DebugVect();
-			debug_vect.timestamp = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
-			std::string name = "test";
-			std::copy(name.begin(), name.end(), debug_vect.name.begin());
+			auto debug_vect = px4_msgs::msg::IrlockReport();
+			debug_vect.timestamp = timestamp_.load();
+            //debug_vect.timestamp = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
+			//std::string name = "test";
+			//std::copy(name.begin(), name.end(), debug_vect.name.begin());
 
             /* OpenCV script*/
             in_video.grab();
@@ -141,9 +152,13 @@ public:
 
                 /*  DEBUGGING PRINT of Deviation    */
                 // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
-                debug_vect.x = x_dev;
-                debug_vect.y = y_dev;
-                debug_vect.z = 4.0;
+                debug_vect.pos_x = x_dev;
+                debug_vect.pos_y = y_dev;
+                debug_vect.signature = 1;
+                debug_vect.size_x = 0;
+                debug_vect.size_y = 0;
+                //debug_vect.size_x = 4.0;
+                //debug_vect.size_y = 4.0;
                 /*  DEBUGGING PRINT of
                 printf("X1=%i X2=%i X3=%i X4=%i\nY1=%i Y2=%i Y3=%i Y4=%i\n", int(corner1.x), int(corner2.x), int(corner3.x), int(corner4.x),
                                                     int(corner1.y), int(corner2.y), int(corner3.y), int(corner4.y));
@@ -153,14 +168,16 @@ public:
             //imshow("Detected markers", image_copy); 
             /* ROS 2 Node console output for debugging*/
 			RCLCPP_INFO(this->get_logger(), "\033[97m Publishing debug_vect: time: %llu x: %f y: %f z: %f \033[0m",
-                                debug_vect.timestamp, debug_vect.x, debug_vect.y, debug_vect.z);
+                                debug_vect.timestamp, debug_vect.pos_x, debug_vect.pos_y, debug_vect.pos_y);
 			this->publisher_->publish(debug_vect);
 		};
 	timer_ = this->create_wall_timer(1ms, timer_callback);
 	}
 private:
 	rclcpp::TimerBase::SharedPtr timer_;
-	rclcpp::Publisher<px4_msgs::msg::DebugVect>::SharedPtr publisher_;
+	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
+    rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+    std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 };
 
 int main(int argc, char **argv)

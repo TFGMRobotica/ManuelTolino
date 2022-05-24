@@ -99,11 +99,24 @@ custom_executable(examples/listeners sensor_combined_listener)
 custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
+custom_executable(./ sitl_camera_display)
+custom_executable(./ sitl_landing_test)
 
 target_link_libraries(debug_vect_advertiser
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
+
+target_link_libraries(sitl_camera_display
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(sitl_landing_test
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+
 
 ############
 # Install ##
