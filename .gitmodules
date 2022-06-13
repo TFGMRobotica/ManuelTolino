@@ -1,4 +1,1 @@
-[submodule "PX4-Autopilot"]
-	path = PX4-Autopilot
-	url = https://github.com/ManuelTolino/PX4-Autopilot
-	branch = master
+
