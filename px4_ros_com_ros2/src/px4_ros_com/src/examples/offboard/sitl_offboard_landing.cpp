@@ -64,10 +64,16 @@ float fov_vert = 1.0 ;
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
                                << 530.8269276712998,  0.0,       320.5,
                                   0.0,       530.8269276712998,  240.5,
-                                  0.0,       0.0,                  1.0); */
+                                  0.0,       0.0,                  1.0); 
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
                                << 474.250810,  0.0,         403.777430,
                                   0.0,       474.152947,    399.072316,
+                                  0.0,       0.0,                  1.0);   
+*/
+
+const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
+                               << 600,  0.0,         600,
+                                  0.0,       600,    600,
                                   0.0,       0.0,                  1.0);   
 
 /* Distortion*/
@@ -93,7 +99,7 @@ auto debug_vect = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
 int navstate = -1;
 int LANDING_MARKER_ACTIVE = 3;
-float MKR_SWITCH_AGL_ALT = 3.1;
+float MKR_SWITCH_AGL_ALT = 4.1;
 float altitude_agl;
 int distance_quality;
 
@@ -116,8 +122,6 @@ public:
 			this->create_publisher<px4_msgs::msg::OffboardControlMode>("fmu/offboard_control_mode/in");
 		trajectory_setpoint_publisher_ =
 			this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("fmu/trajectory_setpoint/in");
-		/*vehicle_local_position_setpoint_publisher_ =
-			this->create_publisher<px4_msgs::msg::VehicleLocalPositionSetpoint>("fmu/vehicle_local_position_setpoint/in");*/
 		vehicle_command_publisher_ =
 			this->create_publisher<px4_msgs::msg::VehicleCommand>("fmu/vehicle_command/in");
 #endif

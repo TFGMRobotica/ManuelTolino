@@ -101,7 +101,7 @@ custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
 custom_executable(./ sitl_camera_display)
 custom_executable(./ sitl_landing_test)
-custom_executable(examples/offboard sitl_offboard)
+custom_executable(examples/offboard sitl_offboard_landing)
 custom_executable(examples/offboard sitl_offboard_odometry)
 
 target_link_libraries(debug_vect_advertiser
@@ -119,7 +119,7 @@ ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
 
-target_link_libraries(sitl_offboard
+target_link_libraries(sitl_offboard_landing
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
