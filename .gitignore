@@ -1,5 +1,7 @@
 build/
 devel/
+install/
+log/
 .vscode
 px4-firmware/
 rpi_foxy_ws/install/
