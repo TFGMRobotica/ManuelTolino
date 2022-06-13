@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL
+#
+# @type Quadrotor Wide
+#
+# @maintainer Julian Oes <julian@oes.ch>
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set MIXER quad_w
+
+# enable fusion of landing target velocity
+param set-default LTEST_MODE 1
+param set-default PLD_HACC_RAD 0.1
+param set-default MAV_ODOM_LP 1
+param set-default RTL_PLD_MD 2
+param set-default MPC_LAND_SPEED 0.5
+# param set-default EKF2_AID_MASK 10
+param set-default MPC_JERK_AUTO 2.0
+## param set-default EKF2_AID_MASK 8
+param set-default EKF2_HGT_MODE 2
+#param set-default COM_RCL_EXCEPT 4
+#param set-default NAV_RCL_ACT 0
+#param set-default NAV_DLL_ACT 0
+#param set-default COM_RC_IN_MODE 4
+
+# Start up Landing Target Estimator module
+landing_target_estimator start
