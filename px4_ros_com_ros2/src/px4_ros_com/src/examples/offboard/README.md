@@ -1,1 +1,2 @@
-# Precission landing
+# Aplicaciones SITL de control offboard en PX4 con ROS 2
+En esta sección se va a explicar el funcionamiento de distintas aplicaciones programadas en C++ que se comunican con el autopiloto PX4 ejecutandose en simulación mediante ROS2.
