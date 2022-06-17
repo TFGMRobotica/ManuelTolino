@@ -60,29 +60,17 @@ cv::Ptr<cv::aruco::Dictionary> dictionary =
 float fov_horiz = 1.0 ;
 float fov_vert = 1.0 ;
 
-/* Camera intrinsic matrix 
-const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 530.8269276712998,  0.0,       320.5,
-                                  0.0,       530.8269276712998,  240.5,
-                                  0.0,       0.0,                  1.0); 
-const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 474.250810,  0.0,         403.777430,
-                                  0.0,       474.152947,    399.072316,
-                                  0.0,       0.0,                  1.0);   
-*/
-
+/* Camera intrinsic matrix */
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
                                << 600,  0.0,         600,
                                   0.0,       600,    600,
                                   0.0,       0.0,                  1.0);   
 
 /* Distortion*/
-
 const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
 const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
 
 /* Other parameters not necessary for now
-
 in_video.open(source); // id
 in_video.set(cv::CAP_PROP_FPS, 30);
 in_video.set(cv::CAP_PROP_FRAME_WIDTH, 640);
@@ -106,26 +94,13 @@ int distance_quality;
 class DebugVectAdvertiser : public rclcpp::Node
 {
 public:
-	DebugVectAdvertiser() : Node("offboard_guidance") {
+	DebugVectAdvertiser() : Node("marker_landing_guidance") {
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
-		offboard_control_mode_publisher_ =
-			this->create_publisher<OffboardControlMode>("fmu/offboard_control_mode/in", 10);
-		trajectory_setpoint_publisher_ =
-			this->create_publisher<TrajectorySetpoint>("fmu/trajectory_setpoint/in", 10);
-		vehicle_command_publisher_ =
-			this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
-		offboard_control_mode_publisher_ =
-			this->create_publisher<px4_msgs::msg::OffboardControlMode>("fmu/offboard_control_mode/in");
-		trajectory_setpoint_publisher_ =
-			this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("fmu/trajectory_setpoint/in");
-		vehicle_command_publisher_ =
-			this->create_publisher<px4_msgs::msg::VehicleCommand>("fmu/vehicle_command/in");
 #endif
-
 		// get common timestamp
 		timesync_sub_ =
 			this->create_subscription<px4_msgs::msg::Timesync>("fmu/timesync/out", 10,
@@ -153,36 +128,8 @@ public:
 					altitude_agl = sensordistmsg->current_distance;
 					distance_quality = sensordistmsg->signal_quality;
 				});
-        offboard_setpoint_counter_ = 0;
 
 		auto timer_callback = [this]()->void {
-
-            /* ROS2 */
-
-            if (offboard_setpoint_counter_ == 100) {
-				// Change to Offboard mode after 100 setpoints
-				//this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
-				// Arm the vehicle
-				this->arm();
-			};
-
-            // offboard_control_mode needs to be paired with trajectory_setpoint
-			// MODES: 14 - OFFBOARD, 2 - POSITION, 4 - HOLD
-			//publish_offboard_control_mode();
-			//publish_velocity_setpoint();
-			//publish_trajectory_setpoint();
-			
-
-           	// stop the counter after reaching 11
-			if (offboard_setpoint_counter_ < 110) {
-				offboard_setpoint_counter_++;
-			};
-			
-			debug_vect.timestamp = timestamp_.load();
-            //debug_vect.timestamp = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
-			//std::string name = "test";
-			//std::copy(name.begin(), name.end(), debug_vect.name.begin());
-
             /* OpenCV script*/
 
 			cv::Mat image, image_copy;
@@ -268,16 +215,13 @@ public:
 
                 /*  DEBUGGING PRINT of Deviation    */
                 // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
+		debug_vect.timestamp = timestamp_.load();
                 debug_vect.pos_x = x_dev;
                 debug_vect.pos_y = y_dev;
                 debug_vect.signature = 1;
                 debug_vect.size_x = 0;
                 debug_vect.size_y = 0;
-                //debug_vect.size_x = 4.0;
-                //debug_vect.size_y = 4.0;
-                /*  DEBUGGING PRINT of 
-                printf("X1=%i X2=%i X3=%i X4=%i\nY1=%i Y2=%i Y3=%i Y4=%i\n", int(corner1.x), int(corner2.x), int(corner3.x), int(corner4.x),
-                                                    int(corner1.y), int(corner2.y), int(corner3.y), int(corner4.y));*/
+
 				irlock_msg = debug_vect;
 				this->publisher_->publish(irlock_msg);
 				/* ROS 2 Node console output for debugging*/
@@ -294,112 +238,14 @@ public:
 private:
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
-    rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
-	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
-	//rclcpp::Publisher<px4_msgs::msg::VehicleLocalPositionSetpoint>::SharedPtr vehicle_local_position_setpoint_publisher_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
-	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;
-        
+	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
-    uint64_t offboard_setpoint_counter_;   //!< counter for the number of setpoints sent
-
-    void publish_offboard_control_mode() const;
-	void publish_trajectory_setpoint() const;
-	//void publish_velocity_setpoint() const;
-	void publish_vehicle_command(uint16_t command, float param1 = 0.0,
-				     float param2 = 0.0) const;
 };
 
-/**
- * @brief Send a command to Arm the vehicle
- */
-void DebugVectAdvertiser::arm() const {
-	publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0);
 
-	RCLCPP_INFO(this->get_logger(), "Arm command send");
-}
-
-/**
- * @brief Send a command to Disarm the vehicle
- */
-void DebugVectAdvertiser::disarm() const {
-	publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0);
-
-	RCLCPP_INFO(this->get_logger(), "Disarm command send");
-}
-
-/**
- * @brief Publish the offboard control mode.
- *        For this example, only position and altitude controls are active.
- */
-void DebugVectAdvertiser::publish_offboard_control_mode() const {
-	px4_msgs::msg::OffboardControlMode msg{};
-	msg.timestamp = timestamp_.load();
-	msg.position = true;
-	msg.velocity = true;
-	msg.acceleration = false;
-	msg.attitude = false;
-	msg.body_rate = false;
-
-	offboard_control_mode_publisher_->publish(msg);
-}
-
-
-/**
- * @brief Publish a trajectory setpoint
- *        For this example, it sends a trajectory setpoint to make the
- *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
- */
-void DebugVectAdvertiser::publish_trajectory_setpoint() const {
-	px4_msgs::msg::TrajectorySetpoint msg{};
-	msg.timestamp = timestamp_.load();
-	//msg.position = {nan, nan, nan};
-	//msg.position = {0.0, 0.0, -5.0};
-	msg.velocity = {0.3, 0.3, 0.5};
-	msg.yaw = -3.14; // [-PI:PI]
-
-	trajectory_setpoint_publisher_->publish(msg);
-}
-
-/**
- * @brief Publish a velocity setpoint
- *        For this example, it sends a trajectory setpoint to make the
- *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
- */
-/*
-void DebugVectAdvertiser::publish_velocity_setpoint() const {
-	px4_msgs::msg::VehicleLocalPositionSetpoint msg{};
-	msg.timestamp = timestamp_.load();
-	msg.vx = 1.0;
-	msg.vy = 0.0;
-	msg.vz = 0.0;
-	vehicle_local_position_setpoint_publisher_->publish(msg);
-}
-*/
-/**
- * @brief Publish vehicle commands
- * @param command   Command code (matches VehicleCommand and MAVLink MAV_CMD codes)
- * @param param1    Command parameter 1
- * @param param2    Command parameter 2
- */
-
-void DebugVectAdvertiser::publish_vehicle_command(uint16_t command, float param1,
-					      float param2) const {
-	VehicleCommand msg{};
-	msg.timestamp = timestamp_.load();
-	msg.param1 = param1;
-	msg.param2 = param2;
-	msg.command = command;
-	msg.target_system = 1;
-	msg.target_component = 1;
-	msg.source_system = 1;
-	msg.source_component = 1;
-	msg.from_external = true;
-
-	vehicle_command_publisher_->publish(msg);
-}
 
 int main(int argc, char* argv[])
 {
