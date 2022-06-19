@@ -86,8 +86,8 @@ in_video.set(cv::CAP_PROP_SATURATION, 0);
 auto debug_vect = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
 int navstate = -1;
-int LANDING_MARKER_ACTIVE = 3;
-float MKR_SWITCH_AGL_ALT = 4.1;
+int LANDING_MARKER_ACTIVE = 4;
+float MKR_SWITCH_AGL_ALT = 0.1;
 float altitude_agl;
 int distance_quality;
 
@@ -153,7 +153,7 @@ public:
 			if (altitude_agl < MKR_SWITCH_AGL_ALT) {
 				LANDING_MARKER_ACTIVE = 6;
 			} else {
-				LANDING_MARKER_ACTIVE = 3;
+				LANDING_MARKER_ACTIVE = 4;
 			};
             int res_horizontal = image_copy.size().width;
             int res_vertical = image_copy.size().height;
@@ -215,7 +215,7 @@ public:
 
                 /*  DEBUGGING PRINT of Deviation    */
                 // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
-		debug_vect.timestamp = timestamp_.load();
+				debug_vect.timestamp = timestamp_.load();
                 debug_vect.pos_x = x_dev;
                 debug_vect.pos_y = y_dev;
                 debug_vect.signature = 1;
@@ -250,7 +250,7 @@ private:
 int main(int argc, char* argv[])
 {
     // in_video.open(0); rpicamera 
-    in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+    in_video.open("udpsrc port=5601 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 	std::cout << "Starting offboard control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 

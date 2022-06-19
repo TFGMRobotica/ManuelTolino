@@ -35,42 +35,37 @@ const char* keys  =
 }
 using namespace cv;
 
-int MARKER_BIG_SIZEmm=409; 
+int MARKER_BIG_SIZEmm=409;
+int MARKER_SMALL_SIZEmm=178; 
 
-// Trackbar call back function 
-static void onChange(int pos, void* userInput); 
-//Mouse callback 
-static void onMouse(int event, int x, int y, int, void* userInput); 
+static void calcDev(std::vector<std::vector<cv::Point2f>> corners,
+                    int marker_index, float res_horiz, float fov_horiz,
+                    float res_vert, float fov_vert, float *xdev, float *ydev);
 
-// Trackbar call back function 
-static void onChange(int pos, void* userData) { 
-    if(pos <= 0) return; 
-    // Aux variable for result 
-    Mat imgBlur; 
-    // Get the pointer input image     
-    Mat* img= (Mat*)userData; 
-    // Apply a blur filter 
-    blur(*img, imgBlur, Size(pos, pos)); 
-    // Show the result 
-    imshow("Detected markers", imgBlur); 
+//calcular desviacion
+static void calcDev(std::vector<std::vector<cv::Point2f>> corners,
+                    int marker_index, float res_horiz, float fov_horiz,
+                    float res_vert, float fov_vert, float *xdev, float *ydev)
+                    { 
+                    auto selected_marker = corners[marker_index];
+                    auto corner1 = selected_marker[0]; // Top Left, small ref. red square
+                    auto corner2 = selected_marker[1]; // Clockwise or top right
+                    auto corner3 = selected_marker[2]; // Clockwise or bottom right
+                    auto corner4 = selected_marker[3]; // Clockwise or bottom left
+
+                    float x_sum = corner1.x + corner2.x + corner3.x + corner4.x ;
+                    float y_sum = corner1.y + corner2.y + corner3.y + corner4.y ;
+
+                    float x_avg = x_sum / 4;
+                    float y_avg = y_sum / 4; 
+
+                    float x_dev = (x_avg - res_horiz * .5) * fov_horiz / res_horiz;
+                    float y_dev = (y_avg - res_vert * .5) * fov_vert / res_vert;
+                    *xdev = x_dev;
+                    *ydev = y_dev;
 }
 
-//Mouse callback 
-static void onMouse(int event, int x, int y, int, void* userInput) 
-{ 
-   if(event != EVENT_LBUTTONDOWN) 
-           return; 
- 
-   // Get the pointer input image 
-   Mat* img= (Mat*)userInput; 
-    
-   // Draw circle 
-   circle(*img, Point(x, y), 10, Scalar(0,255,0), 3); 
- 
-   // Call on change to get blurred image 
-   onChange(MARKER_BIG_SIZEmm, img); 
- 
-}
+
 
 
 int main(int argc, char **argv)
@@ -88,41 +83,10 @@ int main(int argc, char **argv)
     
     cv::String videoInput = "0";
     cv::VideoCapture in_video;
+    cv::Ptr<cv::aruco::Dictionary> dictionary =
+        cv::aruco::getPredefinedDictionary( \
+        cv::aruco::PREDEFINED_DICTIONARY_NAME(dictionaryId));
 
-    int MARKER_BIG = 4;
-    int MARKER_SMALL = 6;
-
-    /*Parametros copiados de inet
-    const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 803.9233,  0,         286.5234,
-                                  0,         807.6013,  245.9685,
-                                  0,         0,         1);
-                                  */
-     /*const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 530.8269276712998,  0.0,         320.5,
-                                  0.0,       530.8269276712998,    240.5,
-                                  0.0,       0.0,                  1.0);*/
-    /*const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 474.250810,  0.0,         403.777430,
-                                  0.0,       474.152947,    399.072316,
-                                  0.0,       0.0,                  1.0);      */
-    const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 600,  0.0,         400,
-                                  0.0,       600,    400,
-                                  0.0,       0.0,                  1.0);                         
-    /* NO distorsion for the virtual camera*/
-    const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
-    /* const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.1431, -0.4943, 0, 0, 0); */
-
-
-    const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0);// La foto corregida se utiliza para la detección
-    float fov_horiz = 1.570796327 ;
-    float fov_vert = 1.570796327 ;
-
-    /* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
-    /* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
-    std::vector<cv::Vec3d> rvecs, tvecs; 
-    
     if (parser.has("v")) {
         videoInput = parser.get<cv::String>("v");
         if (videoInput.empty()) {
@@ -160,20 +124,28 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    cv::Ptr<cv::aruco::Dictionary> dictionary =
-        cv::aruco::getPredefinedDictionary( \
-        cv::aruco::PREDEFINED_DICTIONARY_NAME(dictionaryId));
-    
-    Point text_position(80, 80);//Declaring the text position//
+    const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
+                               << 600,  0.0,         400,
+                                  0.0,       600,    400,
+                                  0.0,       0.0,                  1.0);                         
+    /* NO distorsion for the virtual camera*/
+    const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
+    float fov_horiz = 1.570796327 ;
+    float fov_vert = 1.570796327 ;
+    int MARKER_BIG = 4;
+    int MARKER_SMALL = 6;
+    float bigmkr_devX, bigmkr_devY, smallmkr_devX, smallmkr_devY = 0.0 ;
+    /* The output parameters rvecs and tvecs are the rotation and translation vectors respectively, for each of the markers in markerCorners.*/
+    /* The markerCorners parameter is the vector of marker corners returned by the detectMarkers() function.*/
+    std::vector<cv::Vec3d> rvecs, tvecs;
+
+    // Text overlay parameters
+    Point text1_position(80, 80);//Declaring the text position//
+    Point text2_position(80, 140);//Declaring the text position//
     int font_size = 1;//Declaring the font size//
-    Scalar font_Color(0, 0, 0);//Declaring the color of the font//
+    Scalar font_Color(0, 255, 0);//Declaring the color of the font//
     int font_weight = 2;//Declaring the font weight//
-    
-    // creating stringstream objects
-    std::stringstream ss1;
-    std::stringstream ss2;
-    float dev_horiz = 0.0;
-    float dev_vert = 0.0;
+
 
     while (in_video.grab()) {
         cv::Mat image, image_copy;
@@ -194,113 +166,63 @@ int main(int argc, char **argv)
         corners_valid = corners;
         int res_horizontal = image_copy.size().width;
         int res_vertical = image_copy.size().height;
+        int novalidmarkerflag = 0;
 
-        /*  DEBUGGING PRINT of camera input total pixels */
-        //printf("Width: %i  Height: %i\n",horizontal_res,vertical_res);   
-        
-        
         // If at least one marker detected
         if (ids.size() > 0)
             {
-            //int ldgmkrbig_index = 0;
-            int novalidmarkerflag = 0;
-
             for (int i = 0; i < int(ids.size()); i++){
                 if (int(ids.at(i)) == MARKER_BIG){
-                    //ldgmkrbig_index = i;
-                    //printf("Big marker detected!\n");
                     ids_valid.resize(1);
                     corners_valid.resize(1);
-                    //ids_valid[0]=ids.at(i);
-                    //corners_valid[0]=corners.at(i);
                     ids_valid[0]=ids.at(i);
                     corners_valid[0]=corners.at(i);                    
                     float MKR_SIZE = MARKER_BIG_SIZEmm / 1000.0;
                     cv::aruco::estimatePoseSingleMarkers(corners_valid, MKR_SIZE, intrinsic_matrix, distCoeffs, rvecs, tvecs);
                     cv::aruco::drawDetectedMarkers(image_copy, corners_valid, ids_valid);
-                    /* Draw axis for each marker detected*/
                     auto rvec = rvecs[0];
                     auto tvec = tvecs[0];
                     cv::aruco::drawAxis(image_copy, intrinsic_matrix, distCoeffs, rvec, tvec, 0.1);
-
-                    int marker_index = 0;    
-                    auto selected_marker = corners_valid[marker_index];
-                    auto corner1 = selected_marker[0]; // Top Left, small ref. red square
-                    auto corner2 = selected_marker[1]; // Clockwise or top right
-                    auto corner3 = selected_marker[2]; // Clockwise or bottom right
-                    auto corner4 = selected_marker[3]; // Clockwise or bottom left
-
-                    double x_sum = corner1.x + corner2.x + corner3.x + corner4.x ;
-                    double y_sum = corner1.y + corner2.y + corner3.y + corner4.y ;
-
-                    double x_avg = x_sum / 4;
-                    double y_avg = y_sum / 4; 
-
-                    double x_dev = (x_avg - res_horizontal * .5) * fov_horiz / res_horizontal;
-                    double y_dev = (y_avg - res_vertical * .5) * fov_vert / res_vertical;
-                    dev_horiz =  x_dev;
-                    dev_vert =  y_dev;
+                    calcDev(corners_valid, 0, res_horizontal, fov_horiz, res_vertical, fov_vert, &bigmkr_devX, &bigmkr_devY);
                     novalidmarkerflag = 0;
-                    /*
+                    
                 } else if (ids.at(i) == MARKER_SMALL) {
-                    cv::aruco::estimatePoseSingleMarkers(corners, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
-                    cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
+                    ids_valid.resize(1);
+                    corners_valid.resize(1);
+                    ids_valid[0]=ids.at(i);
+                    corners_valid[0]=corners.at(i);                    
+                    float MKR_SIZE = MARKER_SMALL_SIZEmm / 1000.0;
+                    cv::aruco::estimatePoseSingleMarkers(corners_valid, MKR_SIZE, intrinsic_matrix, distCoeffs, rvecs, tvecs);
+                    cv::aruco::drawDetectedMarkers(image_copy, corners_valid, ids_valid);
                     auto rvec = rvecs[0];
                     auto tvec = tvecs[0];
                     cv::aruco::drawAxis(image_copy, intrinsic_matrix, distCoeffs, rvec, tvec, 0.1);
-                    novalidmarkerflag = 0;*/
+                    calcDev(corners_valid, 0, res_horizontal, fov_horiz, res_vertical, fov_vert, &smallmkr_devX, &smallmkr_devY);
+                    novalidmarkerflag = 0;
                 } else {
                     novalidmarkerflag = 1;
                 };
             };
-
-            /*if (novalidmarkerflag == 1) {
-                break;
-            }*/
-
-            //printf("MarkerID=%i\n", ids.at(0));
-            /*Estimate pose function*/
-
-            //cv::aruco::estimatePoseSingleMarkers(corners, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
-            //cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
-
-            
-
-         
-          
-                
-
-                /*  DEBUGGING PRINT of Deviation  */
-
-                // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
-
-                /*  DEBUGGING PRINT of 
-                printf("X1=%i X2=%i X3=%i X4=%i\nY1=%i Y2=%i Y3=%i Y4=%i\n", int(corner1.x), int(corner2.x), int(corner3.x), int(corner4.x),
-                                                    int(corner1.y), int(corner2.y), int(corner3.y), int(corner4.y));
-                */
-                
-            };
-        // assigning the value of num_float to ss1
-        
-    
-        // assigning the value of num_float to ss2
-        
-
-        // initializing two string variables with the values of ss1 and ss2
-        // and converting it to string format with str() function
-        std::string str1 = std::to_string(dev_horiz);
-        //std::string str2 = ss2.str();
-  
-        putText(image_copy, str1, text_position,FONT_HERSHEY_COMPLEX, font_size,font_Color, font_weight);//Putting the text in the matrix//   
+        };
+        if (novalidmarkerflag == 0) {
+            std::string str1 = "Big marker Deviation X: ";
+            std::string str2 = std::to_string(bigmkr_devX);
+            std::string str3 = " Deviation Y ";
+            std::string str4 = std::to_string(bigmkr_devY);
+            std::string overlaytext_bigmkr = str1 + str2 + str3 + str4;
+            putText(image_copy, overlaytext_bigmkr, text1_position,FONT_HERSHEY_COMPLEX, font_size,font_Color, font_weight);
+            std::string str5 = "Small marker Deviation X: ";
+            std::string str6 = std::to_string(smallmkr_devX);
+            std::string str7 = " Deviation Y ";
+            std::string str8 = std::to_string(smallmkr_devY);
+            std::string overlaytext_smallmkr = str5 + str6 + str7 + str8;
+            putText(image_copy, overlaytext_smallmkr, text2_position,FONT_HERSHEY_COMPLEX, font_size,font_Color, font_weight);
+        };
         imshow("Detected markers", image_copy);
-        // setMouseCallback("Detected markers", onMouse, &image_copy); 
-        // Call to onChange to init 
-        //onChange(MARKER_BIG_SIZEmm, &image_copy);
         char key = (char)cv::waitKey(wait_time);
         if (key == 27)
             break;
-    }
-     
+    };
     cv::destroyWindow("Detected markers"); 
     in_video.release();
     return 0;
