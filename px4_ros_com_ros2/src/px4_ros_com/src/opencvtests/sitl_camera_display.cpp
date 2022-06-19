@@ -185,6 +185,7 @@ int main(int argc, char **argv)
                     cv::aruco::drawAxis(image_copy, intrinsic_matrix, distCoeffs, rvec, tvec, 0.1);
                     calcDev(corners_valid, 0, res_horizontal, fov_horiz, res_vertical, fov_vert, &bigmkr_devX, &bigmkr_devY);
                     novalidmarkerflag = 0;
+                    //std::cout << i << ": r1:" << rvecs[i][0] << "  r2:" << rvecs[i][1] << "  r3:" << rvecs[i][2] << "  r4:" << rvecs[i][3] << "  r5:" << rvecs[i][4] << "  r6:" << rvecs[i][5] << std::endl;
                     
                 } else if (ids.at(i) == MARKER_SMALL) {
                     ids_valid.resize(1);
@@ -199,6 +200,7 @@ int main(int argc, char **argv)
                     cv::aruco::drawAxis(image_copy, intrinsic_matrix, distCoeffs, rvec, tvec, 0.1);
                     calcDev(corners_valid, 0, res_horizontal, fov_horiz, res_vertical, fov_vert, &smallmkr_devX, &smallmkr_devY);
                     novalidmarkerflag = 0;
+                    //std::cout << i << ": r1:" << rvecs[i][0] << "  r2:" << rvecs[i][1] << "  r3:" << rvecs[i][2] << "  r4:" << rvecs[i][3] << "  r5:" << rvecs[i][4] << "  r6:" << rvecs[i][5] << std::endl;
                 } else {
                     novalidmarkerflag = 1;
                 };
