@@ -15,9 +15,9 @@ rtps:
   - msg: OpticalFlow
     receive: true
   - msg: PositionSetpoint
-    receive: true
+    send: true
   - msg: PositionSetpointTriplet
-    receive: true
+    send: true
   - msg: TelemetryStatus
     receive: true
   - msg: Timesync

@@ -99,10 +99,10 @@ custom_executable(examples/listeners sensor_combined_listener)
 custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
-custom_executable(./ sitl_camera_display)
-custom_executable(./ sitl_landing_test)
-custom_executable(examples/offboard sitl_offboard_landing)
-custom_executable(examples/offboard sitl_offboard_odometry)
+custom_executable(opencvtests sitl_camera_display)
+custom_executable(autoland sitl_landing_test)
+custom_executable(autoland sitl_offboard_landing)
+custom_executable(odometry sitl_offboard_odometry)
 
 target_link_libraries(debug_vect_advertiser
 ${catkin_LIBRARIES}

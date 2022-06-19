@@ -1,0 +1,8 @@
+alias px4sitl='bash ~/px4_init_scripts/px4sitl.sh'
+alias px4rtps='bash ~/px4_init_scripts/px4rtps.sh'
+alias px4aruco='bash ~/px4_init_scripts/px4aruco.sh'
+alias px4cam='bash ~/px4_init_scripts/px4cam.sh'
+alias px4buildpack='bash ~/px4_init_scripts/px4buildpack.sh'
+alias px4buildall='bash ~/px4_init_scripts/px4buildall.sh'
+alias px4offboardlanding='bash ~/px4_init_scripts/px4offboardlanding.sh'
+alias px4odom='bash ~/px4_init_scripts/px4sitlodom.sh'
