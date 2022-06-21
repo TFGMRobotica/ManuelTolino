@@ -24,6 +24,10 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 
+// for compressing the image
+//#include <image_transport/image_transport.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+
 #include <chrono>
 #include <iostream>
 
@@ -57,13 +61,13 @@ cv::Ptr<cv::aruco::Dictionary> dictionary =
 		"{v        |<none>| Custom video source, otherwise '0' }"
 		;
 	}*/
-float fov_horiz = 1.0 ;
-float fov_vert = 1.0 ;
+float fov_horiz = 1.570796327 ;
+float fov_vert = 1.570796327 ;
 
 /* Camera intrinsic matrix */
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 600,  0.0,         600,
-                                  0.0,       600,    600,
+                               << 600,  0.0,         400,
+                                  0.0,       600,    400,
                                   0.0,       0.0,                  1.0);   
 
 /* Distortion*/
@@ -83,13 +87,15 @@ in_video.set(cv::CAP_PROP_SATURATION, 0);
 
 /************ ROS2 Node ************/
 
-auto debug_vect = px4_msgs::msg::IrlockReport();
+auto irlock_data = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
 int navstate = -1;
 int LANDING_MARKER_ACTIVE = 4;
 float MKR_SWITCH_AGL_ALT = 0.1;
 float altitude_agl;
 int distance_quality;
+
+
 
 class DebugVectAdvertiser : public rclcpp::Node
 {
@@ -98,8 +104,10 @@ public:
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
+
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
+
 #endif
 		// get common timestamp
 		timesync_sub_ =
@@ -128,6 +136,8 @@ public:
 					altitude_agl = sensordistmsg->current_distance;
 					distance_quality = sensordistmsg->signal_quality;
 				});
+		
+
 
 		auto timer_callback = [this]()->void {
             /* OpenCV script*/
@@ -144,8 +154,9 @@ public:
 				in_video.retrieve(image);
 				image.copyTo(image_copy);
 				cv::aruco::detectMarkers(image, dictionary, corners, ids);
-				//cv::aruco::drawDetectedMarkers(image_copy, corners_valid, ids_valid);
-				
+				cv::aruco::drawDetectedMarkers(image_copy, corners_valid, ids_valid);
+				cv::imshow("Detected markers", image_copy); 
+				cv::waitKey(2);
 				//imshow("cam", image_copy); 
 				ids_valid = ids;
         		corners_valid = corners;
@@ -215,21 +226,32 @@ public:
 
                 /*  DEBUGGING PRINT of Deviation    */
                 // printf("Xdev=%f Ydev=%f\n", x_dev, y_dev);
-				debug_vect.timestamp = timestamp_.load();
-                debug_vect.pos_x = x_dev;
-                debug_vect.pos_y = y_dev;
-                debug_vect.signature = 1;
-                debug_vect.size_x = 0;
-                debug_vect.size_y = 0;
+				irlock_data.timestamp = timestamp_.load();
+                irlock_data.pos_x = x_dev;
+                irlock_data.pos_y = y_dev;
+                irlock_data.signature = 1;
+                irlock_data.size_x = 0;
+                irlock_data.size_y = 0;
 
-				irlock_msg = debug_vect;
+				irlock_msg = irlock_data;
 				this->publisher_->publish(irlock_msg);
 				/* ROS 2 Node console output for debugging*/
 				RCLCPP_INFO(this->get_logger(), "\033[97m TargetDev: x: %f y: %f ID: %i ALT: %f \033[0m",
                                 irlock_msg.pos_x, irlock_msg.pos_y, LANDING_MARKER_ACTIVE, altitude_agl);
                 };
-            /* Image output for debugging - does not work here properly*/    
-            // imshow("Detected markers", image_copy); 
+            	/* Image output for debugging - does not work here properly*/
+/*
+				int counter = 0;
+                while(in_video.grab() && counter == 0 && navstate == 20){
+					std::cout << "FRAME!" << std::endl;
+			   		cv::imshow("Detected markers", image); 
+					cv::waitKey(3);
+			   		counter++;
+			   };
+			   
+*/	   
+			   
+			
 		};
 	timer_ = this->create_wall_timer(1ms, timer_callback);
 	}
@@ -244,7 +266,6 @@ private:
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 };
-
 
 
 int main(int argc, char* argv[])
