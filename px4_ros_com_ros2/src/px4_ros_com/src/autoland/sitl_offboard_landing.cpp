@@ -269,7 +269,7 @@ public:
 						y_avg = ratio * deviation_big.y_avg + (1 - ratio)* deviation_small.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl < (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) { 
 						calcDev(corners_valid_small,0,camera_parameters,&deviation);
 						x_dev = deviation.x_dev;
@@ -278,7 +278,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl > (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) {
 						calcDev(corners_valid_big,0,camera_parameters,&deviation);
 						x_dev = deviation.x_dev;
@@ -287,7 +287,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 					}
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 0)){
 				// But if I only detect the big marker below the transition altitude, only take readings from it
@@ -298,7 +298,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 0 && SMALL_MARKER_FLAG == 1)){
 				// Also if I only detect the small marker below the transition altitude, only take readings from it
 						calcDev(corners_valid_small,0,camera_parameters,&deviation);
@@ -308,7 +308,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl > SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1)){
 				// If I'm higher than the transition altitude and I have big marker on sight...
 						calcDev(corners_valid_big,0,camera_parameters,&deviation);
@@ -318,7 +318,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						cout << x_dev << "  " << y_dev << endl;
+						//cout << x_dev << "  " << y_dev << endl;
 				} else {
 					// In any other case no data should be published to the autopilot
 						x_dev = -9999;
@@ -328,19 +328,22 @@ public:
 						irlock_data.pos_x = NAN;
                 		irlock_data.pos_y = NAN;
 						DEVIATION_BAD = 1; // Do not represent the target indicator on screen
-						cout << "Bad readings..." << endl;
+						//cout << "Bad readings..." << endl;
 				}
 
 				if (DEVIATION_BAD == 0) {
+
+					// =======  Dynamic Lines overlay  =========== //
+
+
 					Scalar hline_Color(0, 255, 0);
 					Point hpt1(0, y_avg);
 					Point hpt2(camera_parameters.res_horizontal, y_avg);
 					line(image_copy,hpt1,hpt2,hline_Color,1);
 
-					Scalar vline_Color(0, 255, 0);
 					Point vpt1(x_avg, 0);
 					Point vpt2(x_avg, camera_parameters.res_vertical);
-					line(image_copy,vpt1,vpt2,vline_Color,1);
+					line(image_copy,vpt1,vpt2,hline_Color,1);
 
 					// =======  Dynamic Text overlay  =========== //
 
@@ -374,10 +377,22 @@ public:
 				this->publisher_->publish(irlock_msg);
 			};
 
+				// =======  Static Lines overlay  =========== //
+
+				Scalar static_hline_Color(0, 0, 255);
+				Point static_hpt1(0, (camera_parameters.res_horizontal / 2));
+				Point static_hpt2(camera_parameters.res_horizontal , (camera_parameters.res_horizontal / 2));
+				line(image_copy,static_hpt1,static_hpt2,static_hline_Color,1);
+
+				
+				Point static_vpt1((camera_parameters.res_vertical / 2), 0);
+				Point static_vpt2((camera_parameters.res_vertical / 2), camera_parameters.res_vertical);
+				line(image_copy,static_vpt1,static_vpt2,static_hline_Color,1);
+
 				// =======  Static Text overlay  =========== //
 
-				Point text2_position(40, 120);//Declaring the text position//
-				Point text3_position(40, 160);//Declaring the text position//
+				Point text2_position(40, 40);//Declaring the text position//
+				Point text3_position(40, 80);//Declaring the text position//
 
 				double font_size_big = 0.7;//Declaring the font size//
 				Scalar font_Color_static(0, 255, 0);//Declaring the color of the font//
