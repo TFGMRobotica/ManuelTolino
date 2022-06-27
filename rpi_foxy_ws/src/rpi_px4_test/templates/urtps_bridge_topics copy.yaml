@@ -15,9 +15,9 @@ rtps:
   - msg: OpticalFlow
     receive: true
   - msg: PositionSetpoint
-    send: true
+    receive: true
   - msg: PositionSetpointTriplet
-    send: true
+    receive: true
   - msg: TelemetryStatus
     receive: true
   - msg: Timesync
@@ -31,7 +31,8 @@ rtps:
     send: true
   - msg: VehicleLocalPositionSetpoint
     receive: true
-  - msg: TrajectorySetpoint
+  - base: VehicleLocalPositionSetpoint
+    msg: TrajectorySetpoint
     receive: true
   - msg: VehicleOdometry
     send: true
@@ -59,8 +60,4 @@ rtps:
   - msg: TimesyncStatus
     send: true
   - msg: SensorCombined
-    send: true
-  - msg: IrlockReport
-    receive: true
-  - msg: DistanceSensor
     send: true
