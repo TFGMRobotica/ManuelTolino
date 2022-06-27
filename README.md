@@ -82,6 +82,10 @@ git submodule add [LINK DE GITHUB] [Ruta y carpeta final renombrante]
 ```
 Link recomendado: https://chrisjean.com/git-submodules-adding-using-removing-and-updating/
 
+Para descartar cambios locales y volver a clonar lo que está en el repositorio:
+```
+git reset --hard
+```
 # ROS 2 + RTPS + PX4
 Para compilar el workspace del puente ROS 2 - PX4:
 ```
