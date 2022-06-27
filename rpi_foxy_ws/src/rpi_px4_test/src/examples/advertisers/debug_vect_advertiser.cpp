@@ -19,6 +19,8 @@ Description:
 
  /* Video object  -1st device - rpi camera module*/
 cv::VideoCapture in_video(0);
+//cv::VideoWriter writer;
+
 
 /**************** OpenCV parameters *****************/
 
@@ -165,6 +167,14 @@ private:
 int main(int argc, char **argv)
 {
     in_video.open(0);
+    /*
+    writer.open("appsrc ! videoconvert ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=4 ! mpegtsmux ! udpsink host=localhost port=9999"
+                , 0, (double)30, cv::Size(640, 480), true);
+    if (!writer.isOpened()) {
+        printf("=ERR= can't create video writer\n");
+        return -1;
+    }*/
+
 	std::cout << "Starting debug_vect advertiser node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 

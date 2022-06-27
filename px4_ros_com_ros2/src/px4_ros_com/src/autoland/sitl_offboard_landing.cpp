@@ -29,6 +29,7 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #include <opencv2/aruco.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 // for compressing the image
 //#include <image_transport/image_transport.hpp>
@@ -60,7 +61,7 @@ using namespace px4_msgs::msg;
 	};
 
 /**************** OpenCV global variables *****************/
-
+cv_bridge::CvImage::toImageMsg()
  /* Video object */
  //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
@@ -417,7 +418,7 @@ public:
 
 	// Main callback function of the node:
 
-	timer_ = this->create_wall_timer(1ms, timer_callback);
+	timer_ = this->create_wall_timer(16ms, timer_callback);
 
 	}
 private:
