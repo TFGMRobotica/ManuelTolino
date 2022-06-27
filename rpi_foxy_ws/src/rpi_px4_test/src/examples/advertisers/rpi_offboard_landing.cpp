@@ -1,5 +1,5 @@
 #/*
-File: sitl_landing_test.cpp
+File: rpi_landing_test.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
 Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar así segundo marcador mas pequeño al estar mas bajo.
@@ -60,7 +60,7 @@ using namespace px4_msgs::msg;
 	};
 
 /**************** OpenCV global variables *****************/
-cv_bridge::CvImage::toImageMsg()
+//cv_bridge::CvImage::toImageMsg()
  /* Video object */
  //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
@@ -467,7 +467,7 @@ int main(int argc, char* argv[])
 {
     // in_video.open(0); rpicamera
 	
-    in_video.open("udpsrc port=5601 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+    in_video.open(0);
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);

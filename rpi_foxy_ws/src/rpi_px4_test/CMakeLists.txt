@@ -100,7 +100,12 @@ custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
 custom_executable(examples/advertisers opencv_debug)
+custom_executable(examples/advertisers rpi_offboard_landing)
 
+target_link_libraries(rpi_offboard_landing
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
 target_link_libraries(debug_vect_advertiser
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
