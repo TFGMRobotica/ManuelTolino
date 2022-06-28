@@ -467,7 +467,10 @@ int main(int argc, char* argv[])
 {
     // in_video.open(0); rpicamera
 	
-    in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+    //in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+	// HITL:
+	in_video.open("-v udpsrc port=5600 caps ='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! fpsdisplaysink sync=false");
+
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
