@@ -78,7 +78,7 @@ public:
 		image_sub =	this->create_subscription<sensor_msgs::msg::Image>(
            "image_raw",
            10,
-           std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
+           std::bind(&DebugVectAdvertiser::imageCallback, this));
 
 	}
 private:
