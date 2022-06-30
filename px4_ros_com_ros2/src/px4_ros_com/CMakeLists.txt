@@ -106,6 +106,7 @@ custom_executable(examples/offboard offboard_control)
 custom_executable(./ multithreadtest)
 custom_executable(opencvtests sitl_camera_display)
 custom_executable(opencvtests sitl_camera_node)
+custom_executable(opencvtests rosimagetest)
 custom_executable(autoland sitl_landing_test)
 custom_executable(autoland sitl_offboard_landing)
 custom_executable(odometry sitl_offboard_odometry)
@@ -129,6 +130,10 @@ ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(sitl_offboard_landing
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+target_link_libraries(rosimagetest
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
