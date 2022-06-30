@@ -101,13 +101,18 @@ custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
 custom_executable(examples/advertisers opencv_debug)
 custom_executable(examples/advertisers rpi_offboard_landing)
-custom_executable(examples/advertisers hitl_offboard_landing)
+custom_executable(hitl hitl_offboard_landing)
+custom_executable(hitl hitl_rosvideo_test)
 
 target_link_libraries(rpi_offboard_landing
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
 target_link_libraries(hitl_offboard_landing
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+target_link_libraries(hitl_rosvideo_test
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )

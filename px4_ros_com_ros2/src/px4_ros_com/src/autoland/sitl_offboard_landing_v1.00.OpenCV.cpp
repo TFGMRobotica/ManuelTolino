@@ -31,13 +31,8 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #include <opencv2/highgui.hpp>
 
 // for compressing the image
-#include <cv_bridge/cv_bridge.h>
-#include <cv_bridge/rgb_colors.h>
-#include <sensor_msgs/image_encodings.hpp>
 //#include <image_transport/image_transport.hpp>
-#include "cv_bridge/cv_bridge.h"
-#include "image_transport/image_transport.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
 
 #include <chrono>
 #include <iostream>
@@ -65,7 +60,7 @@ using namespace px4_msgs::msg;
 	};
 
 /**************** OpenCV global variables *****************/
-//cv_bridge::CvImage::toImageMsg();
+cv_bridge::CvImage::toImageMsg()
  /* Video object */
  //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
@@ -117,7 +112,6 @@ in_video.set(cv::CAP_PROP_SATURATION, 0);
 
 auto irlock_data = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
-
 int navstate = -1;
 int LANDING_MARKER_BIG = 4;
 int LANDING_MARKER_SMALL = 6;
@@ -127,23 +121,18 @@ float altitude_agl;
 int distance_quality;
 
 
+
 class DebugVectAdvertiser : public rclcpp::Node
 {
 public:
-	
 	DebugVectAdvertiser() : Node("marker_landing_guidance") {
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
-		image_pub_ = create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
-    	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
-	
+
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
-		image_pub_ = create_publisher<sensor_msgs::msg::Image>("image_raw");
-    	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 
-		
 #endif
 		// get common timestamp
 		timesync_sub_ =
@@ -422,15 +411,8 @@ public:
 				// ============= Show the result video feed on screen =============== //
 
                 cv::imshow("Detected markers", image_copy); 
-				cv::waitKey(2);	
-
-
+				cv::waitKey(2);
 				
-				std_msgs::msg::Header hdr;
-				sensor_msgs::msg::Image::SharedPtr msg;
-
-				msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toImageMsg();
-				this->image_pub_->publish(*msg);	
 		};
 
 	// Main callback function of the node:
@@ -443,8 +425,7 @@ private:
 	//screen_dev deviation;
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
-	
-	
+
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
 	 * @param corners   Detected corners by OpenCV detectMarkers fnc
@@ -472,8 +453,6 @@ private:
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
-	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
@@ -492,8 +471,6 @@ int main(int argc, char* argv[])
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-
-
 
 	rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<DebugVectAdvertiser>());

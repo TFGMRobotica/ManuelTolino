@@ -33,6 +33,16 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 // for compressing the image
 //#include <image_transport/image_transport.hpp>
 //#include <opencv2/imgproc/imgproc.hpp>
+// for compressing the image
+#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/rgb_colors.h>
+#include <sensor_msgs/image_encodings.hpp>
+//#include <image_transport/image_transport.hpp>
+#include "cv_bridge/cv_bridge.h"
+#include "image_transport/image_transport.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+
 
 #include <chrono>
 #include <iostream>
@@ -66,7 +76,7 @@ using namespace px4_msgs::msg;
 cv::VideoCapture in_video;
 
 /**************** OpenCV parameters *****************/
-
+cv::Mat image /*,image_copy*/;
 cv::String videoInput = "0";
 
 /* ArUco Dictionary ID*/
@@ -140,6 +150,17 @@ public:
 				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
 					timestamp_.store(msg->timestamp);
 				});
+		/*image_sub =
+			this->create_subscription<sensor_msgs::msg::Image>("image_raw", 10,
+				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
+					timestamp_.store(msg->timestamp);
+				});*/
+		/*image_sub =	this->create_subscription<sensor_msgs::msg::Image>(
+           "image_raw",
+           10,
+           std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
+			*/
+
 		vehiclestatus_sub_ =
 			this->create_subscription<px4_msgs::msg::VehicleStatus>("fmu/vehicle_status/out", 10,
 				[this](const px4_msgs::msg::VehicleStatus::UniquePtr navstatmsg) {
@@ -159,7 +180,7 @@ public:
 			int SMALL_MARKER_FLAG = 0; // No small marker detected by default
 			int DEVIATION_BAD = 0; // This is use to judge the case in the detector function
 
-			cv::Mat image /*,image_copy*/;
+			
 			std::vector<int> ids;
 			std::vector<std::vector<cv::Point2f>> corners;
         	std::vector<int> ids_valid_big, ids_valid_small;
@@ -426,6 +447,17 @@ private:
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
 
+	void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr & msg)
+		{
+		try {
+			cv::imshow("view", cv_bridge::toCvShare(msg, "bgr8")->image);
+			cv::waitKey(3);
+		} catch (cv_bridge::Exception & e) {
+			auto logger = rclcpp::get_logger("my_subscriber");
+			RCLCPP_ERROR(logger, "Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+		}
+		};
+
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
 	 * @param corners   Detected corners by OpenCV detectMarkers fnc
@@ -455,6 +487,7 @@ private:
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+	rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
@@ -469,7 +502,7 @@ int main(int argc, char* argv[])
 	
     //in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 	// HITL:
-	in_video.open("-v udpsrc port=5600 caps ='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! fpsdisplaysink sync=false");
+	//in_video.open("-v udpsrc port=5600 caps ='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! fpsdisplaysink sync=false");
 
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
@@ -478,7 +511,7 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<DebugVectAdvertiser>());
 
-    in_video.release();
+    //in_video.release();
     rclcpp::shutdown();
     return 0;
 }
