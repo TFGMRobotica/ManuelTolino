@@ -11,6 +11,10 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #else
 #include <unistd.h>
 #endif
+#include <chrono>
+#include <iostream>
+#include <stdint.h>
+#include <string>
 
 #include <px4_msgs/msg/irlock_report.hpp>
 #include <px4_msgs/msg/timesync.hpp>
@@ -22,36 +26,26 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/distance_sensor.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <stdint.h>
-#include <string>
+
 #include <opencv2/core.hpp> 
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
-
-// for compressing the image
-//#include <image_transport/image_transport.hpp>
-//#include <opencv2/imgproc/imgproc.hpp>
-// for compressing the image
-#include <cv_bridge/cv_bridge.h>
-#include <cv_bridge/rgb_colors.h>
-#include <sensor_msgs/image_encodings.hpp>
-//#include <image_transport/image_transport.hpp>
-#include "cv_bridge/cv_bridge.h"
-#include "image_transport/image_transport.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/rgb_colors.h>
 
-
-#include <chrono>
-#include <iostream>
+#include <sensor_msgs/image_encodings.hpp>
+#include "image_transport/image_transport.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
+using std::placeholders::_1;
 
 		struct cam_params
 	{
