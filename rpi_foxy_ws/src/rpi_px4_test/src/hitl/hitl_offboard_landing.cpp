@@ -150,16 +150,8 @@ public:
 				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
 					timestamp_.store(msg->timestamp);
 				});
-		/*image_sub =
-			this->create_subscription<sensor_msgs::msg::Image>("image_raw", 10,
-				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
-					timestamp_.store(msg->timestamp);
-				});*/
-		/*image_sub =	this->create_subscription<sensor_msgs::msg::Image>(
-           "image_raw",
-           10,
-           std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
-			*/
+        image_sub = this->create_subscription<sensor_msgs::msg::Image>(
+            "image_raw", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
 
 		vehiclestatus_sub_ =
 			this->create_subscription<px4_msgs::msg::VehicleStatus>("fmu/vehicle_status/out", 10,
@@ -195,8 +187,8 @@ public:
 
 			double x_avg, y_avg, x_dev, y_dev;
 
-			in_video.grab();
-			in_video.retrieve(image);
+			//in_video.grab();
+			//in_video.retrieve(image);
 			image.copyTo(image_copy);
 
 			camera_parameters.res_horizontal = image_copy.size().width;
@@ -447,7 +439,7 @@ private:
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
 
-	void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr & msg)
+	void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg) const
 		{
 		try {
 			cv::imshow("view", cv_bridge::toCvShare(msg, "bgr8")->image);
@@ -487,7 +479,8 @@ private:
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
-	rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
+	
+	rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub; 
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
