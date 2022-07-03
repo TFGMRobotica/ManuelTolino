@@ -45,3 +45,4 @@ $ ./micrortps_agent [options]
 
 ## Configuración de punto de acceso WiFi en RPi
 https://thepi.io/how-to-use-your-raspberry-pi-as-a-wireless-access-point/
+http://kio4.com/raspberry/18_punto_acceso.htm
