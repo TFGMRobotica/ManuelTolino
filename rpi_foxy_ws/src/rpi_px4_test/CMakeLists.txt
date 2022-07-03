@@ -107,6 +107,7 @@ custom_executable(examples/advertisers opencv_debug)
 custom_executable(examples/advertisers rpi_offboard_landing)
 custom_executable(hitl hitl_offboard_landing)
 custom_executable(hitl hitl_rosvideo_test)
+custom_executable(operative aruco_landing)
 
 target_link_libraries(rpi_offboard_landing
 ${catkin_LIBRARIES}
@@ -125,6 +126,10 @@ ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
 target_link_libraries(opencv_debug
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+target_link_libraries(aruco_landing
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
