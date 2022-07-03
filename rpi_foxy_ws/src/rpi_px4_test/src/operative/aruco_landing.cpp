@@ -183,8 +183,8 @@ public:
 
 			double x_avg, y_avg, x_dev, y_dev;
 
-			//in_video.grab();
-			//in_video.retrieve(image);
+			in_video.grab();
+			in_video.retrieve(image);
 			image.copyTo(image_copy);
 
 			camera_parameters.res_horizontal = image_copy.size().width;
@@ -423,8 +423,8 @@ public:
 				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
 				this->image_pub_->publish(*img_msg);
 
-                //cv::imshow("Detected markers", image_copy); 
-				//cv::waitKey(2);
+                cv::imshow("Detected markers", image_copy); 
+				cv::waitKey(2);
 		};
 
 	// Main callback function of the node:
@@ -436,7 +436,6 @@ private:
 	//screen_dev deviation;
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
-
 
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
