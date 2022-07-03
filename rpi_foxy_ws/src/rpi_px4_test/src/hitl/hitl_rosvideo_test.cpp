@@ -40,7 +40,7 @@ class DebugVectAdvertiser : public rclcpp::Node
 {
 public:
 	DebugVectAdvertiser() : Node("ros_camera_receiver") {
-        image_sub = this->create_subscription<sensor_msgs::msg::Image>(
+        image_sub = this->create_subscription<sensor_msgs::msg::CompressedImage>(
             "image_raw", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
 	}
 private:
@@ -54,7 +54,7 @@ private:
 			RCLCPP_ERROR(logger, "Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
 		}
 		};
-	rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;   
+	rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub;   
 };
 
 

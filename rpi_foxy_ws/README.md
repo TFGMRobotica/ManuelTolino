@@ -42,3 +42,6 @@ $ ./micrortps_agent [options]
   -n <set namespace>      Set a namespace for the micrortps_agent.
   ```
 <span style="color:blue">⚠️ No se ha conseguido recibir transmisión de vídeo mediante gstreamer y openCV en la raspberry Pi 4B+. Esto puede ser debido a que OpenCV no ha sido compilado en la RPI4 con la opción activada de usar Gstreamer. Habría que probar recompilandolo pero este proceso lleva horas. Se va a tratar de usar el transporte de imágen mediante ROS 2 para esta prueba en su lugar.</span>
+
+## Configuración de punto de acceso WiFi en RPi
+https://thepi.io/how-to-use-your-raspberry-pi-as-a-wireless-access-point/
