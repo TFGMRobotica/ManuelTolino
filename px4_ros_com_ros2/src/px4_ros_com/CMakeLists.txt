@@ -45,6 +45,7 @@ find_package("${rmw_implementation}" REQUIRED)
 
 find_package(px4_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(compressed_image_transport REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -77,6 +78,7 @@ function(custom_executable subfolder target)
     rclcpp
     px4_msgs
     image_transport
+    compressed_image_transport
     cv_bridge
   )
   install(TARGETS ${target}
@@ -85,7 +87,7 @@ endfunction()
 
 # Add frame_transforms lib
 add_library(frame_transforms SHARED src/lib/frame_transforms.cpp)
-ament_target_dependencies(frame_transforms Eigen3 geometry_msgs sensor_msgs cv_bridge image_transport)
+ament_target_dependencies(frame_transforms Eigen3 geometry_msgs sensor_msgs cv_bridge image_transport compressed_image_transport)
 target_include_directories(frame_transforms PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>

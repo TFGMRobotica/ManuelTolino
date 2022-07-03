@@ -37,8 +37,6 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 //#include <image_transport/image_transport.hpp>
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.hpp"
-#include "compressed_image_transport/compressed_publisher.h"
-#include "compressed_image_transport/compression_common.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <chrono>
@@ -137,12 +135,12 @@ public:
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
-		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed", 10);
+		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image_raw", 10);
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
 	
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
-		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed");
+		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image_raw");
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 
 		
@@ -429,22 +427,13 @@ public:
 
 				
 				std_msgs::msg::Header hdr;
-
 				sensor_msgs::msg::Image::SharedPtr msg;
 
-				//msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toImageMsg();
-				sensor_msgs::msg::CompressedImage::SharedPtr img_msg;
-				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
 				
-				//msg.toCompressedImage(img_msg);
-
-				//this->image_pub_->publish(*msg);
-				this->image_pub_->publish(*img_msg);
-					
+				this->image_pub_->publish(*msg);	
 		};
 
 	// Main callback function of the node:
-	
 	
 	timer_ = this->create_wall_timer(16ms, timer_callback);
 

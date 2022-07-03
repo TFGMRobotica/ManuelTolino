@@ -1,5 +1,5 @@
 #/*
-File: rosimagetest.cpp
+File: sitl_landing_test.cpp
 */
 
 #include <cstdlib>
@@ -34,26 +34,31 @@ using std::placeholders::_1;
 cv::VideoCapture in_video;
 cv::Mat image;
 
+
 /************ ROS2 Node ************/
 
 class DebugVectAdvertiser : public rclcpp::Node
 {
 public:
 	DebugVectAdvertiser() : Node("ros_camera_receiver") {
+		//image_sub = this->create_subscription<sensor_msgs::msg::Image>(
         image_sub = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-            "image/compressed", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
+            "image_raw", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
 	}
 private:
+	//void imageCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msg) const
 	void imageCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msg) const
 		{
 		try {
-			cv::imshow("view", cv_bridge::toCvCopy(msg, "bgr8")->image);
+			//cv::imshow("view", cv_bridge::toCvCopy(msg, "bgr8")->image);
+			cv::imshow("view", cv_bridge::toCvShare(msg, "bgr8")->image);
 			cv::waitKey(3);
 		} catch (cv_bridge::Exception & e) {
 			auto logger = rclcpp::get_logger("my_subscriber");
-			/*RCLCPP_ERROR(logger, "Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());*/
+			RCLCPP_ERROR(logger, "Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
 		}
 		};
+		//rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image; 
 	rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub;   
 };
 
