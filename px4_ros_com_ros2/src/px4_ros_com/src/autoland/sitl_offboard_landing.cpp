@@ -135,12 +135,12 @@ public:
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
-		image_pub_ = create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
+		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image_raw", 10);
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
 	
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
-		image_pub_ = create_publisher<sensor_msgs::msg::Image>("image_raw");
+		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image_raw");
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 
 		
@@ -472,7 +472,7 @@ private:
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+	rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
 	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;

@@ -44,7 +44,7 @@ public:
             "image_raw", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));
 	}
 private:
-	void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg) const
+	void imageCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msg) const
 		{
 		try {
 			cv::imshow("view", cv_bridge::toCvShare(msg, "bgr8")->image);
