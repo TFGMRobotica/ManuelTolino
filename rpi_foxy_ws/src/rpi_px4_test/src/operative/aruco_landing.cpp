@@ -71,6 +71,7 @@ cv::VideoCapture in_video;
 
 /**************** OpenCV parameters *****************/
 cv::Mat image /*,image_copy*/;
+cv::Mat image_copy;
 cv::String videoInput = "0";
 
 /* ArUco Dictionary ID*/
@@ -93,24 +94,20 @@ cv::Ptr<cv::aruco::Dictionary> dictionary =
 
 /* Camera intrinsic matrix */
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 600,  0.0,         400,
-                                  0.0,       600,    400,
-                                  0.0,       0.0,                  1.0);   
+                               << 474.250810,  0.0,         403.777430,
+                                  0.0,       474.152947,    399.072316,
+                                  0.0,       0.0,                  1.0);  
 
 /* Distortion*/
 const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
 const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
 
-/* Other parameters not necessary for now
-in_video.open(source); // id
-in_video.set(cv::CAP_PROP_FPS, 30);
-in_video.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-in_video.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
-in_video.set(cv::CAP_PROP_SATURATION, 0);
-*/
+/*Other parameters not necessary for now*/
+//in_video.open(source); // id
 
-/************  ************/
 
+
+/************           ************/
 
 /************ ROS2 Node ************/
 
@@ -123,8 +120,6 @@ float SWITCH_AGL_ALT = 4;
 float SWITCH_AGL_MARGIN = 1.5 ;
 float altitude_agl;
 int distance_quality;
-
-
 
 class DebugVectAdvertiser : public rclcpp::Node
 {
@@ -174,8 +169,8 @@ public:
         	std::vector<int> ids_valid_big, ids_valid_small;
         	std::vector<std::vector<cv::Point2f>> corners_valid_big, corners_valid_small;
 			std::vector<cv::Vec3d> rvecs, tvecs;
-			cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
-
+			//cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
+			
 			//float fov_horiz = 1.570796327 ;
 			//float fov_vert = 1.570796327 ;
 			camera_parameters.fov_horiz = 1.570796327;
@@ -187,13 +182,15 @@ public:
 			in_video.retrieve(image);
 			image.copyTo(image_copy);
 
-			camera_parameters.res_horizontal = image_copy.size().width;
-			camera_parameters.res_vertical = image_copy.size().height;
+			camera_parameters.res_horizontal = image.size().width;
+			camera_parameters.res_vertical = image.size().height;
 
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
+/*
 			int TRACKBAR_AGL_INPUT;
 			int TRACKBAR_AGL_MARGIN;
+
 			createTrackbar("Transition altitude (dm):", "Detected markers", &TRACKBAR_AGL_INPUT, 70);
 			createTrackbar("Altitude margin (dm):", "Detected markers", &TRACKBAR_AGL_MARGIN, 30);
 
@@ -203,7 +200,9 @@ public:
 
 			SWITCH_AGL_ALT = TRACKBAR_AGL_INPUT / 10;
 			SWITCH_AGL_MARGIN = TRACKBAR_AGL_INPUT / 10;
-
+*/
+			SWITCH_AGL_ALT = 1.5;
+			SWITCH_AGL_MARGIN = 1.0;
 
 			//if (navstate == 20 /*&& in_video.isOpened()*/){
 				/* MOVED OUTSIDE FOR DEBUGGING
@@ -222,17 +221,16 @@ public:
         		corners_valid_small = corners;
 			//};
 
-
-
             //int res_horizontal = image_copy.size().width;
             //int res_vertical = image_copy.size().height;
 
             /*  DEBUGGING PRINT of camera input total pixels */
             // printf("Width: %i  Height: %i\n",horizontal_res,vertical_res);
 
+            //if (ids.size() > 0 && navstate == 20){ // If at least one marker detected and Prec Land mode
 
+			if (ids.size() > 0){ // If at least one marker detected
 
-            if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
 				for (int i = 0; i < int(ids.size()); i++){
 					if (int(ids.at(i)) == LANDING_MARKER_BIG){
 						BIG_MARKER_FLAG = 1;
@@ -330,20 +328,19 @@ public:
 						//cout << x_dev << "  " << y_dev << endl;
 				} else {
 					// In any other case no data should be published to the autopilot
-						x_dev = -9999;
-						y_dev = -9999;
-						x_avg = -9999;
-						y_avg = -9999;
+						x_dev = deviation.x_dev;
+						y_dev = deviation.y_dev;
+						x_avg = deviation.x_avg;
+						y_avg = deviation.y_avg;
 						irlock_data.pos_x = NAN;
                 		irlock_data.pos_y = NAN;
-						DEVIATION_BAD = 1; // Do not represent the target indicator on screen
+						DEVIATION_BAD = 0; // Do not represent the target indicator on screen
 						//cout << "Bad readings..." << endl;
 				}
 
 				if (DEVIATION_BAD == 0) {
 
 					// =======  Dynamic Lines overlay  =========== //
-
 
 					Scalar hline_Color(0, 255, 0);
 					Point hpt1(0, y_avg);
@@ -387,15 +384,27 @@ public:
 			};
 
 				// =======  Static Lines overlay  =========== //
-
+/*
+				// Horizontal line // 
 				Scalar static_hline_Color(0, 0, 255);
 				Point static_hpt1(0, (camera_parameters.res_horizontal / 2));
 				Point static_hpt2(camera_parameters.res_horizontal , (camera_parameters.res_horizontal / 2));
 				line(image_copy,static_hpt1,static_hpt2,static_hline_Color,1);
 
-				
+				// Vertical line // 
 				Point static_vpt1((camera_parameters.res_vertical / 2), 0);
 				Point static_vpt2((camera_parameters.res_vertical / 2), camera_parameters.res_vertical);
+				line(image_copy,static_vpt1,static_vpt2,static_hline_Color,1);
+*/
+				// Horizontal line // 
+				Scalar static_hline_Color(0, 0, 255);
+				Point static_hpt1(0, (camera_parameters.res_vertical / 2));
+				Point static_hpt2(camera_parameters.res_horizontal , (camera_parameters.res_vertical / 2));
+				line(image_copy,static_hpt1,static_hpt2,static_hline_Color,1);
+
+				// Vertical line // 
+				Point static_vpt1((camera_parameters.res_horizontal / 2), 0);
+				Point static_vpt2((camera_parameters.res_horizontal / 2), camera_parameters.res_vertical);
 				line(image_copy,static_vpt1,static_vpt2,static_hline_Color,1);
 
 				// =======  Static Text overlay  =========== //
@@ -417,19 +426,18 @@ public:
 				std::string overlaytext_navmode = str5 + str6;
 				putText(image_copy, overlaytext_navmode, text2_position,FONT_HERSHEY_COMPLEX, font_size_big,font_Color_static, font_weight);
 
-				// ============= Show the result video feed on screen =============== //
-				std_msgs::msg::Header hdr;
-				sensor_msgs::msg::CompressedImage::SharedPtr img_msg;
-				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
-				this->image_pub_->publish(*img_msg);
-
-                cv::imshow("Detected markers", image_copy); 
-				cv::waitKey(2);
+                //cv::imshow("Detected markers", image_copy); 
+				//cv::waitKey(2);
 		};
 
 	// Main callback function of the node:
 
 	timer_ = this->create_wall_timer(16ms, timer_callback);
+	// ============= Show the result video feed on screen =============== //
+	std_msgs::msg::Header hdr;
+	sensor_msgs::msg::CompressedImage::SharedPtr img_msg;
+	img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
+	this->image_pub_->publish(*img_msg);
 	}
 private:
 
@@ -479,7 +487,10 @@ private:
 int main(int argc, char* argv[])
 {
     in_video.open(0); //rpicamera
-	
+	//in_video.set(cv::CAP_PROP_FPS, 30);
+	in_video.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+	in_video.set(cv::CAP_PROP_FRAME_HEIGHT, 1024);
+	//in_video.set(cv::CAP_PROP_SATURATION, 0);
     //in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 	// HITL:
 	//in_video.open("-v udpsrc port=5600 caps ='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! fpsdisplaysink sync=false");

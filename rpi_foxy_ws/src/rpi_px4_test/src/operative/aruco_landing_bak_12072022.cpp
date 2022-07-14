@@ -11,6 +11,10 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #else
 #include <unistd.h>
 #endif
+#include <chrono>
+#include <iostream>
+#include <stdint.h>
+#include <string>
 
 #include <px4_msgs/msg/irlock_report.hpp>
 #include <px4_msgs/msg/timesync.hpp>
@@ -22,33 +26,26 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/distance_sensor.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <stdint.h>
-#include <string>
+
 #include <opencv2/core.hpp> 
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
-
-// for compressing the image
-#include <cv_bridge/cv_bridge.h>
-#include <cv_bridge/rgb_colors.h>
-#include <sensor_msgs/image_encodings.hpp>
-//#include <image_transport/image_transport.hpp>
-#include "cv_bridge/cv_bridge.h"
-#include "image_transport/image_transport.hpp"
-#include "compressed_image_transport/compressed_publisher.h"
-#include "compressed_image_transport/compression_common.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <chrono>
-#include <iostream>
+#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/rgb_colors.h>
+
+#include <sensor_msgs/image_encodings.hpp>
+#include "image_transport/image_transport.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
+using std::placeholders::_1;
 
 		struct cam_params
 	{
@@ -67,13 +64,13 @@ using namespace px4_msgs::msg;
 	};
 
 /**************** OpenCV global variables *****************/
-//cv_bridge::CvImage::toImageMsg();
+//cv_bridge::CvImage::toImageMsg()
  /* Video object */
  //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
 
 /**************** OpenCV parameters *****************/
-
+cv::Mat image /*,image_copy*/;
 cv::String videoInput = "0";
 
 /* ArUco Dictionary ID*/
@@ -96,9 +93,9 @@ cv::Ptr<cv::aruco::Dictionary> dictionary =
 
 /* Camera intrinsic matrix */
 const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 600,  0.0,         400,
-                                  0.0,       600,    400,
-                                  0.0,       0.0,                  1.0);   
+                               << 474.250810,  0.0,         403.777430,
+                                  0.0,       474.152947,    399.072316,
+                                  0.0,       0.0,                  1.0);  
 
 /* Distortion*/
 const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -112,14 +109,12 @@ in_video.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
 in_video.set(cv::CAP_PROP_SATURATION, 0);
 */
 
-/************  ************/
-
+/************           ************/
 
 /************ ROS2 Node ************/
 
 auto irlock_data = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
-
 int navstate = -1;
 int LANDING_MARKER_BIG = 4;
 int LANDING_MARKER_SMALL = 6;
@@ -128,24 +123,19 @@ float SWITCH_AGL_MARGIN = 1.5 ;
 float altitude_agl;
 int distance_quality;
 
-
 class DebugVectAdvertiser : public rclcpp::Node
 {
 public:
-	
 	DebugVectAdvertiser() : Node("marker_landing_guidance") {
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed", 10);
-    	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
-	
+
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed");
-    	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 
-		
 #endif
 		// get common timestamp
 		timesync_sub_ =
@@ -153,6 +143,9 @@ public:
 				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
 					timestamp_.store(msg->timestamp);
 				});
+        /*image_sub = this->create_subscription<sensor_msgs::msg::Image>(
+            "image_raw", 10, std::bind(&DebugVectAdvertiser::imageCallback, this, _1));*/
+
 		vehiclestatus_sub_ =
 			this->create_subscription<px4_msgs::msg::VehicleStatus>("fmu/vehicle_status/out", 10,
 				[this](const px4_msgs::msg::VehicleStatus::UniquePtr navstatmsg) {
@@ -172,14 +165,14 @@ public:
 			int SMALL_MARKER_FLAG = 0; // No small marker detected by default
 			int DEVIATION_BAD = 0; // This is use to judge the case in the detector function
 
-			cv::Mat image /*,image_copy*/;
+			
 			std::vector<int> ids;
 			std::vector<std::vector<cv::Point2f>> corners;
         	std::vector<int> ids_valid_big, ids_valid_small;
         	std::vector<std::vector<cv::Point2f>> corners_valid_big, corners_valid_small;
 			std::vector<cv::Vec3d> rvecs, tvecs;
-			cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
-
+			//cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
+			cv::Mat image_copy;
 			//float fov_horiz = 1.570796327 ;
 			//float fov_vert = 1.570796327 ;
 			camera_parameters.fov_horiz = 1.570796327;
@@ -196,8 +189,10 @@ public:
 
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
+/*
 			int TRACKBAR_AGL_INPUT;
 			int TRACKBAR_AGL_MARGIN;
+
 			createTrackbar("Transition altitude (dm):", "Detected markers", &TRACKBAR_AGL_INPUT, 70);
 			createTrackbar("Altitude margin (dm):", "Detected markers", &TRACKBAR_AGL_MARGIN, 30);
 
@@ -207,7 +202,9 @@ public:
 
 			SWITCH_AGL_ALT = TRACKBAR_AGL_INPUT / 10;
 			SWITCH_AGL_MARGIN = TRACKBAR_AGL_INPUT / 10;
-
+*/
+			SWITCH_AGL_ALT = 1.5;
+			SWITCH_AGL_MARGIN = 1.0;
 
 			//if (navstate == 20 /*&& in_video.isOpened()*/){
 				/* MOVED OUTSIDE FOR DEBUGGING
@@ -226,15 +223,11 @@ public:
         		corners_valid_small = corners;
 			//};
 
-
-
             //int res_horizontal = image_copy.size().width;
             //int res_vertical = image_copy.size().height;
 
             /*  DEBUGGING PRINT of camera input total pixels */
             // printf("Width: %i  Height: %i\n",horizontal_res,vertical_res);
-
-
 
             if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
 				for (int i = 0; i < int(ids.size()); i++){
@@ -422,24 +415,17 @@ public:
 				putText(image_copy, overlaytext_navmode, text2_position,FONT_HERSHEY_COMPLEX, font_size_big,font_Color_static, font_weight);
 
 				// ============= Show the result video feed on screen =============== //
-
-                cv::imshow("Detected markers", image_copy); 
-				cv::waitKey(2);	
-				
 				std_msgs::msg::Header hdr;
-				sensor_msgs::msg::Image::SharedPtr msg;
-
-				//msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toImageMsg();
 				sensor_msgs::msg::CompressedImage::SharedPtr img_msg;
 				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
-				
-				//msg.toCompressedImage(img_msg);
-				//this->image_pub_->publish(*msg);
 				this->image_pub_->publish(*img_msg);
+
+                //cv::imshow("Detected markers", image_copy); 
+				//cv::waitKey(2);
 		};
 
 	// Main callback function of the node:
-	
+
 	timer_ = this->create_wall_timer(16ms, timer_callback);
 	}
 private:
@@ -447,7 +433,7 @@ private:
 	//screen_dev deviation;
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
-		
+
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
 	 * @param corners   Detected corners by OpenCV detectMarkers fnc
@@ -475,10 +461,10 @@ private:
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
-	rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
-	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+	
+	rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
@@ -489,9 +475,12 @@ private:
 
 int main(int argc, char* argv[])
 {
-    // in_video.open(0); rpicamera
+    in_video.open(0); //rpicamera
 	
-    in_video.open("udpsrc port=5601 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+    //in_video.open("udpsrc port=5600 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
+	// HITL:
+	//in_video.open("-v udpsrc port=5600 caps ='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! fpsdisplaysink sync=false");
+
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
@@ -499,7 +488,7 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<DebugVectAdvertiser>());
 
-    in_video.release();
+    //in_video.release();
     rclcpp::shutdown();
     return 0;
 }

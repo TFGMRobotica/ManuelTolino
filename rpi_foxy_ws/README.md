@@ -46,3 +46,16 @@ $ ./micrortps_agent [options]
 ## Configuración de punto de acceso WiFi en RPi
 https://thepi.io/how-to-use-your-raspberry-pi-as-a-wireless-access-point/
 http://kio4.com/raspberry/18_punto_acceso.htm
+
+## Implementación en la plataforma hardware
+Una vez conectado mediante UART el puerto TELEM 2 del PX4 y los GPIO UART de la Rpi 4:
+
+Lanzar el microRTPS client en PX4:
+```
+micrortps_client -t UART -d /dev/ttyS0
+```
+Lanzar el microRTPS agent en la RPi 4:
+```
+micrortps_agent -t UART -d /dev/ttyAMA0 
+```
+En este punto ya está establecido el puente y es posible conectarse con PX4 a través de la red ROS 2.
