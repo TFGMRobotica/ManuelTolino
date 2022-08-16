@@ -12,12 +12,12 @@ rtps:
     receive: true
   - msg: OffboardControlMode
     receive: true
-  - msg: OpticalFlow
+  - msg: SensorOpticalFlow
     receive: true
   - msg: PositionSetpoint
-    send: true
+    receive: true
   - msg: PositionSetpointTriplet
-    send: true
+    receive: true
   - msg: TelemetryStatus
     receive: true
   - msg: Timesync
@@ -63,4 +63,4 @@ rtps:
   - msg: IrlockReport
     receive: true
   - msg: DistanceSensor
-    send: true
+    send: true    

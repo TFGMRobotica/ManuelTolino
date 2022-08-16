@@ -130,7 +130,6 @@ target_link_libraries(sitl_landing_test
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
-
 target_link_libraries(sitl_offboard_landing
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
@@ -139,7 +138,6 @@ target_link_libraries(rosimagetest
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
-
 
 target_link_libraries(sitl_offboard_odometry
 ${catkin_LIBRARIES}
@@ -153,9 +151,9 @@ ${OpenCV_LIBRARIES}
 
 # Export information to downstream packages
 if(ROS_DISTRO IN_LIST ROS_DISTROS)
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 px4_msgs cv_bridge geometry_msgs sensor_msgs)
+  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 px4_msgs compressed_image_transport cv_bridge geometry_msgs sensor_msgs)
 else()
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs geometry_msgs cv_bridge sensor_msgs)
+  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs geometry_msgs compressed_image_transport cv_bridge sensor_msgs)
 endif()
 if (ROS_DISTRO IN_LIST USES_DEPRECATED_EXPORT_API)
   ament_export_interfaces(export_frame_transforms HAS_LIBRARY_TARGET)

@@ -282,7 +282,7 @@ public:
 						y_avg = ratio * deviation_big.y_avg + (1 - ratio)* deviation_small.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl < (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) { 
 						calcDev(corners_valid_small,0,camera_parameters,&deviation);
 						x_dev = deviation.x_dev;
@@ -291,7 +291,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl > (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) {
 						calcDev(corners_valid_big,0,camera_parameters,&deviation);
 						x_dev = deviation.x_dev;
@@ -300,7 +300,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 					}
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 0)){
 				// But if I only detect the big marker below the transition altitude, only take readings from it
@@ -311,7 +311,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 0 && SMALL_MARKER_FLAG == 1)){
 				// Also if I only detect the small marker below the transition altitude, only take readings from it
 						calcDev(corners_valid_small,0,camera_parameters,&deviation);
@@ -321,7 +321,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl > SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1)){
 				// If I'm higher than the transition altitude and I have big marker on sight...
 						calcDev(corners_valid_big,0,camera_parameters,&deviation);
@@ -331,7 +331,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
-						//cout << x_dev << "  " << y_dev << endl;
+						cout << x_dev << "  " << y_dev << endl;
 				} else {
 					// In any other case no data should be published to the autopilot
 						x_dev = -9999;
@@ -341,7 +341,7 @@ public:
 						irlock_data.pos_x = NAN;
                 		irlock_data.pos_y = NAN;
 						DEVIATION_BAD = 1; // Do not represent the target indicator on screen
-						//cout << "Bad readings..." << endl;
+						cout << "Bad readings..." << endl;
 				}
 
 				if (DEVIATION_BAD == 0) {
@@ -490,7 +490,7 @@ private:
 int main(int argc, char* argv[])
 {
     // in_video.open(0); rpicamera
-	
+	std::cout << "Hello!" << std::endl;
     in_video.open("udpsrc port=5601 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
