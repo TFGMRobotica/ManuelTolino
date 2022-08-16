@@ -3,6 +3,7 @@ File: sitl_landing_test.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
 Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar así segundo marcador mas pequeño al estar mas bajo.
+commit
 */
 
 #include <cstdlib>
