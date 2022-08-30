@@ -1,8 +1,8 @@
 #/*
-File: sitl_landing_test.cpp
+File: sitl_offboard_landing.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
-Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar así segundo marcador mas pequeño al estar mas bajo.
+Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo.
 */
 
 #include <cstdlib>
@@ -14,11 +14,11 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 
 #include <px4_msgs/msg/irlock_report.hpp>
 #include <px4_msgs/msg/timesync.hpp>
-#include <px4_msgs/msg/offboard_control_mode.hpp>
-#include <px4_msgs/msg/trajectory_setpoint.hpp>
-#include <px4_msgs/msg/vehicle_local_position_setpoint.hpp>
+//#include <px4_msgs/msg/offboard_control_mode.hpp>
+//#include <px4_msgs/msg/trajectory_setpoint.hpp>
+//#include <px4_msgs/msg/vehicle_local_position_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
-#include <px4_msgs/msg/vehicle_control_mode.hpp>
+//#include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/distance_sensor.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -147,7 +147,6 @@ public:
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed");
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("fmu/vehicle_command/in");
-
 		
 #endif
 		// get common timestamp
@@ -183,8 +182,6 @@ public:
 			std::vector<cv::Vec3d> rvecs, tvecs;
 			cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
 
-			//float fov_horiz = 1.570796327 ;
-			//float fov_vert = 1.570796327 ;
 			camera_parameters.fov_horiz = 1.570796327;
 			camera_parameters.fov_vert = 1.570796327;
 
@@ -211,7 +208,6 @@ public:
 			SWITCH_AGL_ALT = TRACKBAR_AGL_INPUT / 10;
 			SWITCH_AGL_MARGIN = TRACKBAR_AGL_INPUT / 10;
 
-
 			//if (navstate == 20 /*&& in_video.isOpened()*/){
 				/* MOVED OUTSIDE FOR DEBUGGING
 				in_video.grab();
@@ -237,7 +233,8 @@ public:
 						corners_valid_big.resize(1);
 						ids_valid_big[0]=ids.at(i);
 						corners_valid_big[0]=corners.at(i);
-						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
+						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, 
+						//intrinsic_matrix, distCoeffs, rvecs, tvecs);
 					};
 					if (int(ids.at(i)) == LANDING_MARKER_SMALL){
 						SMALL_MARKER_FLAG = 1;
@@ -245,7 +242,8 @@ public:
 						corners_valid_small.resize(1);
 						ids_valid_small[0]=ids.at(i);
 						corners_valid_small[0]=corners.at(i);
-						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, intrinsic_matrix, distCoeffs, rvecs, tvecs);
+						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, 
+						//intrinsic_matrix, distCoeffs, rvecs, tvecs);
 					}
 				}
 
@@ -364,8 +362,10 @@ public:
 					std::string str4 = std::to_string(irlock_msg.pos_y);
 					std::string overlaytext_devx = str1 + str2;
 					std::string overlaytext_devy = str3 + str4;
-					putText(image_copy, overlaytext_devx, text_devx_position,FONT_HERSHEY_SIMPLEX, font_size,font_Color, font_weight_small);
-					putText(image_copy, overlaytext_devy, text_devy_position,FONT_HERSHEY_SIMPLEX, font_size,font_Color, font_weight_small);
+					putText(image_copy, overlaytext_devx, text_devx_position,FONT_HERSHEY_SIMPLEX, 
+					font_size,font_Color, font_weight_small);
+					putText(image_copy, overlaytext_devy, text_devy_position,FONT_HERSHEY_SIMPLEX, 
+					font_size,font_Color, font_weight_small);
 
 					// ============================================ //
 				}
@@ -407,12 +407,14 @@ public:
 				std::string str7 = "Altitude: ";
 				std::string str8 = std::to_string(altitude_agl);
 				std::string overlaytext_altitude = str7 + str8;
-				putText(image_copy, overlaytext_altitude, text3_position,FONT_HERSHEY_COMPLEX, font_size_big,font_Color_static, font_weight);
+				putText(image_copy, overlaytext_altitude, text3_position,FONT_HERSHEY_COMPLEX, 
+				font_size_big,font_Color_static, font_weight);
 				
 				std::string str5 = "Nav mode: ";
 				std::string str6 = std::to_string(navstate);
 				std::string overlaytext_navmode = str5 + str6;
-				putText(image_copy, overlaytext_navmode, text2_position,FONT_HERSHEY_COMPLEX, font_size_big,font_Color_static, font_weight);
+				putText(image_copy, overlaytext_navmode, text2_position,FONT_HERSHEY_COMPLEX, 
+				font_size_big,font_Color_static, font_weight);
 
 				// ============= Show the result video feed on screen =============== //
 
@@ -425,9 +427,6 @@ public:
 				//msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toImageMsg();
 				sensor_msgs::msg::CompressedImage::SharedPtr img_msg;
 				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
-				
-				//msg.toCompressedImage(img_msg);
-				//this->image_pub_->publish(*msg);
 				this->image_pub_->publish(*img_msg);
 		};
 
@@ -445,8 +444,6 @@ public:
 	void arm() const;
 private:
 
-	//screen_dev deviation;
-	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
 	void publish_vehicle_command(uint16_t command, float param1 = 0.0,
 				     float param2 = 0.0) const;
@@ -457,7 +454,8 @@ private:
 	 * @param mkr_index    Which marker of all detected in the vector of 'corners' - usually 1st (0)
 	 * @param camera_parameters    FOV and image resolution parameters you need to get from video input object
 	 */
-	void calcDev(std::vector<std::vector<cv::Point2f>> corners, int mkr_index, cam_params camera_parameters, screen_dev* deviation) {
+	void calcDev(std::vector<std::vector<cv::Point2f>> corners, int mkr_index, 
+	cam_params camera_parameters, screen_dev* deviation) {
 
                 //auto selected_marker = corners[marker_index];
 				auto selected_marker = corners[mkr_index];
@@ -472,8 +470,10 @@ private:
                 deviation->x_avg = x_sum / 4;
                 deviation->y_avg = y_sum / 4;
 
-				deviation->x_dev = (deviation->x_avg - camera_parameters.res_horizontal * .5) * camera_parameters.fov_horiz / camera_parameters.res_horizontal;
-                deviation->y_dev = (deviation->y_avg - camera_parameters.res_vertical * .5) * camera_parameters.fov_vert / camera_parameters.res_vertical;
+				deviation->x_dev = (deviation->x_avg - camera_parameters.res_horizontal * .5) 
+				* camera_parameters.fov_horiz / camera_parameters.res_horizontal;
+                deviation->y_dev = (deviation->y_avg - camera_parameters.res_vertical * .5) 
+				* camera_parameters.fov_vert / camera_parameters.res_vertical;
 	};
 
 	rclcpp::TimerBase::SharedPtr timer_;
