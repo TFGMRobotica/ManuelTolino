@@ -79,7 +79,7 @@ cv::String videoInput = "0";
 /* ArUco Dictionary ID*/
 cv::Ptr<cv::aruco::Dictionary> dictionary =
         cv::aruco::getPredefinedDictionary( \
-        cv::aruco::PREDEFINED_DICTIONARY_NAME(16));
+        cv::aruco::PREDEFINED_DICTIONARY_NAME(16)); //Selected ArUco
 	/*namespace {
 	const char* about = "Detect ArUco marker images";
 	const char* keys  =
@@ -104,7 +104,7 @@ const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
 const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
 const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
 
-/* Other parameters not necessary for now
+/* NOt necessary as we are using gstreamer pipeline
 in_video.open(source); // id
 in_video.set(cv::CAP_PROP_FPS, 30);
 in_video.set(cv::CAP_PROP_FRAME_WIDTH, 640);
@@ -130,21 +130,23 @@ int distance_quality;
 int first_loop = 1;
 
 
-class DebugVectAdvertiser : public rclcpp::Node
+class SITLOffboardLanding : public rclcpp::Node
 {
 public:
 	
-	DebugVectAdvertiser() : Node("marker_landing_guidance") {
+	SITLOffboardLanding() : Node("marker_landing_guidance") {
 
 #ifdef ROS_DEFAULT_API
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in", 10);
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed", 10);
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
+		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
 	
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed");
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
+		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("fmu/vehicle_command/in");
 
 		
 #endif
@@ -226,16 +228,6 @@ public:
 				ids_valid_small = ids;
         		corners_valid_small = corners;
 			//};
-
-
-
-            //int res_horizontal = image_copy.size().width;
-            //int res_vertical = image_copy.size().height;
-
-            /*  DEBUGGING PRINT of camera input total pixels */
-            // printf("Width: %i  Height: %i\n",horizontal_res,vertical_res);
-
-
 
             if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
 				for (int i = 0; i < int(ids.size()); i++){
@@ -426,7 +418,7 @@ public:
 
                 cv::imshow("Detected markers", image_copy); 
 				cv::waitKey(2);	
-				
+				// ============= Transmit the image via ROS2 compressed image topic =============== //
 				std_msgs::msg::Header hdr;
 				sensor_msgs::msg::Image::SharedPtr msg;
 
@@ -495,13 +487,13 @@ private:
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 
-	//DebugVectAdvertiser::interface(float devX, float devY, float alt, int navmode){
+	//SITLOffboardLanding::interface(float devX, float devY, float alt, int navmode){
 };
 
 /**
  * @brief Send a command to Arm the vehicle
  */
-void DebugVectAdvertiser::arm() const {
+void SITLOffboardLanding::arm() const {
 	publish_vehicle_command(VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0);
 
 	RCLCPP_INFO(this->get_logger(), "Arm command send");
@@ -513,7 +505,7 @@ void DebugVectAdvertiser::arm() const {
  * @param param1    Command parameter 1
  * @param param2    Command parameter 2
  */
-void DebugVectAdvertiser::publish_vehicle_command(uint16_t command, float param1,
+void SITLOffboardLanding::publish_vehicle_command(uint16_t command, float param1,
 					      float param2) const {
 	VehicleCommand msg{};
 	msg.timestamp = timestamp_.load();
@@ -532,14 +524,14 @@ void DebugVectAdvertiser::publish_vehicle_command(uint16_t command, float param1
 int main(int argc, char* argv[])
 {
     // in_video.open(0); rpicamera
-	
+	// Gstreamer blockling input pipeline. Node wont start if UDP video input not received
     in_video.open("udpsrc port=5601 ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink drop=1");
 	std::cout << "Video input received!" << std::endl;
 	std::cout << "Starting ArUco autoland control node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
 	rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<DebugVectAdvertiser>());
+    rclcpp::spin(std::make_shared<SITLOffboardLanding>());
 
     in_video.release();
     rclcpp::shutdown();
