@@ -40,7 +40,7 @@ rtps:
     receive: true
   - msg:     offboard_control_mode
     receive: true
-  - msg:     sensor_optical_flow
+  - msg:     optical_flow
     receive: true
   - msg:     position_setpoint
     receive: true
@@ -59,7 +59,8 @@ rtps:
     send:    true
   - msg:     vehicle_local_position_setpoint
     receive: true
-  - msg:     trajectory_setpoint
+  - msg:     trajectory_setpoint # multi-topic / alias of vehicle_local_position_setpoint
+    base:    vehicle_local_position_setpoint
     receive: true
   - msg:     vehicle_odometry
     send:    true
@@ -90,5 +91,3 @@ rtps:
     send:    true
   - msg:     irlock_report
     receive: true
-  - msg:     distance_sensor
-    send:    true
