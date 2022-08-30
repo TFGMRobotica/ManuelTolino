@@ -127,6 +127,7 @@ float SWITCH_AGL_ALT = 4;
 float SWITCH_AGL_MARGIN = 1.5 ;
 float altitude_agl;
 int distance_quality;
+int first_loop = 1;
 
 
 class DebugVectAdvertiser : public rclcpp::Node
@@ -438,15 +439,25 @@ public:
 				this->image_pub_->publish(*img_msg);
 		};
 
+		auto timer_status_callback = [this]()->void {
+				if (first_loop == 1){
+					this -> arm();
+					first_loop = 0;
+				};
+		};
 	// Main callback function of the node:
 	
 	timer_ = this->create_wall_timer(16ms, timer_callback);
+	timer_satus_ = this->create_wall_timer(1000ms, timer_status_callback);
 	}
+	void arm() const;
 private:
 
 	//screen_dev deviation;
 	//screen_dev deviation_big, deviation_small;
 	cam_params camera_parameters;
+	void publish_vehicle_command(uint16_t command, float param1 = 0.0,
+				     float param2 = 0.0) const;
 		
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
@@ -474,6 +485,7 @@ private:
 	};
 
 	rclcpp::TimerBase::SharedPtr timer_;
+	rclcpp::TimerBase::SharedPtr timer_satus_;
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
 	rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
 	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
@@ -486,6 +498,36 @@ private:
 	//DebugVectAdvertiser::interface(float devX, float devY, float alt, int navmode){
 };
 
+/**
+ * @brief Send a command to Arm the vehicle
+ */
+void DebugVectAdvertiser::arm() const {
+	publish_vehicle_command(VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0);
+
+	RCLCPP_INFO(this->get_logger(), "Arm command send");
+}
+
+/**
+ * @brief Publish vehicle commands
+ * @param command   Command code (matches VehicleCommand and MAVLink MAV_CMD codes)
+ * @param param1    Command parameter 1
+ * @param param2    Command parameter 2
+ */
+void DebugVectAdvertiser::publish_vehicle_command(uint16_t command, float param1,
+					      float param2) const {
+	VehicleCommand msg{};
+	msg.timestamp = timestamp_.load();
+	msg.param1 = param1;
+	msg.param2 = param2;
+	msg.command = command;
+	msg.target_system = 1;
+	msg.target_component = 1;
+	msg.source_system = 1;
+	msg.source_component = 1;
+	msg.from_external = true;
+
+	vehicle_command_publisher_->publish(msg);
+}
 
 int main(int argc, char* argv[])
 {
