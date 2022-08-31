@@ -14,8 +14,8 @@ Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar a
 
 #include <px4_msgs/msg/irlock_report.hpp>
 #include <px4_msgs/msg/timesync.hpp>
-//#include <px4_msgs/msg/offboard_control_mode.hpp>
-//#include <px4_msgs/msg/trajectory_setpoint.hpp>
+#include <px4_msgs/msg/offboard_control_mode.hpp>
+#include <px4_msgs/msg/trajectory_setpoint.hpp>
 //#include <px4_msgs/msg/vehicle_local_position_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 //#include <px4_msgs/msg/vehicle_control_mode.hpp>
@@ -123,17 +123,20 @@ auto irlock_msg = px4_msgs::msg::IrlockReport();
 int navstate = -1;
 int LANDING_MARKER_BIG = 4;
 int LANDING_MARKER_SMALL = 6;
-float SWITCH_AGL_ALT = 4;
-float SWITCH_AGL_MARGIN = 1.5 ;
+float SWITCH_AGL_ALT = 3.0;
+float SWITCH_AGL_MARGIN = 1.0 ;
+int TRACKBAR_AGL_INPUT = 30;
+int TRACKBAR_AGL_MARGIN = 10;
 float altitude_agl;
 int distance_quality;
 int first_loop = 1;
+int take_off_loop = 0;
+int offboard_order = 0;
 
 
 class SITLOffboardLanding : public rclcpp::Node
 {
 public:
-	
 	SITLOffboardLanding() : Node("marker_landing_guidance") {
 
 #ifdef ROS_DEFAULT_API
@@ -141,12 +144,16 @@ public:
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed", 10);
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
+		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("fmu/offboard_control_mode/in", 10);
+		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("fmu/trajectory_setpoint/in", 10);
 	
 #else
 		publisher_ = this->create_publisher<px4_msgs::msg::IrlockReport>("fmu/irlock_report/in");
 		image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>("image/compressed");
     	info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info");
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("fmu/vehicle_command/in");
+		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("fmu/offboard_control_mode/in");
+		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("fmu/trajectory_setpoint/in");
 		
 #endif
 		// get common timestamp
@@ -169,10 +176,7 @@ public:
 
 		// Main callback of the node:
 		auto timer_callback = [this]()->void {
-			/* Some default parameters that should be set to zero each loop */
-            int BIG_MARKER_FLAG = 0; // No big marker detected by default
-			int SMALL_MARKER_FLAG = 0; // No small marker detected by default
-			int DEVIATION_BAD = 0; // This is use to judge the case in the detector function
+
 
 			cv::Mat image /*,image_copy*/;
 			std::vector<int> ids;
@@ -185,8 +189,6 @@ public:
 			camera_parameters.fov_horiz = 1.570796327;
 			camera_parameters.fov_vert = 1.570796327;
 
-			double x_avg, y_avg, x_dev, y_dev;
-
 			in_video.grab();
 			in_video.retrieve(image);
 			image.copyTo(image_copy);
@@ -196,8 +198,7 @@ public:
 
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
-			int TRACKBAR_AGL_INPUT;
-			int TRACKBAR_AGL_MARGIN;
+
 			createTrackbar("Transition altitude (dm):", "Detected markers", &TRACKBAR_AGL_INPUT, 70);
 			createTrackbar("Altitude margin (dm):", "Detected markers", &TRACKBAR_AGL_MARGIN, 30);
 
@@ -205,8 +206,8 @@ public:
 				TRACKBAR_AGL_INPUT = TRACKBAR_AGL_MARGIN + 1;
 			}
 
-			SWITCH_AGL_ALT = TRACKBAR_AGL_INPUT / 10;
-			SWITCH_AGL_MARGIN = TRACKBAR_AGL_INPUT / 10;
+			SWITCH_AGL_ALT = float (TRACKBAR_AGL_INPUT / 10.0);
+			SWITCH_AGL_MARGIN = float (TRACKBAR_AGL_INPUT / 10.0);
 
 			//if (navstate == 20 /*&& in_video.isOpened()*/){
 				/* MOVED OUTSIDE FOR DEBUGGING
@@ -250,10 +251,6 @@ public:
 				screen_dev deviation, deviation_big, deviation_small;
 				//cam_params camera_parameters;
 
-				x_avg = 0;
-				y_avg = 0;
-				x_dev = 0;
-				y_dev = 0;
 
 				if ((altitude_agl < SWITCH_AGL_ALT) /*&& (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)*/) 
 				//If I'm below transition altitude and I detect Both markers
@@ -431,22 +428,97 @@ public:
 		};
 
 		auto timer_status_callback = [this]()->void {
-				if (first_loop == 1){
-					this -> arm();
-					first_loop = 0;
-				};
+			if (first_loop == 1){
+				this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+				this -> arm();
+				cout << "Orden de armado enviada" << endl;
+				first_loop = 0;
+			};
+			if (take_off_loop ==3){
+				OFF_X = 0.0 ;
+				OFF_Y = 0.0 ;
+				OFF_YAW = 0.0 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==5){
+				OFF_X = 0.0 ;
+				OFF_Y = 0.0 ;
+				OFF_YAW = -3.14 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==5){
+			 	OFF_X = 2.0 ;
+				OFF_Y = 0.0 ;
+				OFF_YAW = -3.14 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==10){
+				OFF_X = 2.0 ;
+			 	OFF_Y = 2.0 ;
+				OFF_YAW = -3.14 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==15){
+				OFF_X = 2.0 ;
+				OFF_Y = 1.0 ;
+				OFF_YAW = 0.0 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==15){
+				OFF_X = 1.0 ;
+				OFF_Y = 0.0 ;
+				OFF_YAW = -3.14 ;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+			};
+			if (take_off_loop ==20){
+				this->publish_precland_mode(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 9);
+			};
+			if (take_off_loop < 21) {
+				cout << "TO Loop Debug value: " << take_off_loop << endl;
+				take_off_loop++;
+			};
 		};
+
+		auto timer_offboard_callback = [this]()->void {
+				publish_offboard_control_mode();
+				//publish_trajectory_setpoint();
+				TrajectorySetpoint msg{};
+				msg.timestamp = timestamp_.load();
+				msg.position = {OFF_X, OFF_Y, -SWITCH_AGL_ALT};
+				msg.yaw = OFF_YAW; // [-PI:PI]
+
+				trajectory_setpoint_publisher_->publish(msg);
+		};
+
+	//};
 	// Main callback function of the node:
 	
 	timer_ = this->create_wall_timer(16ms, timer_callback);
+	timer_offboard_ = this->create_wall_timer(100ms, timer_offboard_callback);
 	timer_satus_ = this->create_wall_timer(1000ms, timer_status_callback);
 	}
 	void arm() const;
 private:
 
+	double x_avg = 0;
+	double y_avg = 0;
+	double x_dev = 0;
+	double y_dev = 0;
+	/* Some default parameters that should be set to zero each loop */
+	int BIG_MARKER_FLAG = 0; // No big marker detected by default
+	int SMALL_MARKER_FLAG = 0; // No small marker detected by default
+	int DEVIATION_BAD = 0; // This is use to judge the case in the detector function
+	float OFF_X = 0.0 ;
+	float OFF_Y = 0.0 ;
+	float OFF_YAW = 0.0 ;
+
 	cam_params camera_parameters;
 	void publish_vehicle_command(uint16_t command, float param1 = 0.0,
 				     float param2 = 0.0) const;
+	void publish_precland_mode(uint16_t command, float param1 = 0.0,
+				     float param2 = 0.0, float param3 = 0.0) const;
+	void publish_offboard_control_mode() const;
+	//void publish_trajectory_setpoint() const;
 		
 	/**
 	 * @brief Calculate the deviation from center image of a detected marker
@@ -476,12 +548,35 @@ private:
 				* camera_parameters.fov_vert / camera_parameters.res_vertical;
 	};
 
+	/**
+	 * @brief Publish a trajectory setpoint
+	 *        For this example, it sends a trajectory setpoint to make the
+	 *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
+	 */
+
+	/*
+	//void SITLOffboardLanding::publish_trajectory_setpoint() const {
+	void publish_trajectory_setpoint() const {
+		TrajectorySetpoint msg{};
+		msg.timestamp = timestamp_.load();
+		msg.position = {0.0, 0.0, -3.0};
+		msg.yaw = -3.14; // [-PI:PI]
+
+		trajectory_setpoint_publisher_->publish(msg);
+	}
+	*/
+
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::TimerBase::SharedPtr timer_satus_;
+	rclcpp::TimerBase::SharedPtr timer_offboard_;
+
 	rclcpp::Publisher<px4_msgs::msg::IrlockReport>::SharedPtr publisher_;
 	rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
 	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
+	rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
+	rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
+
     rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
@@ -500,11 +595,46 @@ void SITLOffboardLanding::arm() const {
 }
 
 /**
+ * @brief Publish the offboard control mode.
+ *        For this example, only position and altitude controls are active.
+ */
+void SITLOffboardLanding::publish_offboard_control_mode() const {
+	OffboardControlMode msg{};
+	msg.timestamp = timestamp_.load();
+	msg.position = true;
+	msg.velocity = false;
+	msg.acceleration = false;
+	msg.attitude = false;
+	msg.body_rate = false;
+
+	offboard_control_mode_publisher_->publish(msg);
+}
+
+
+/**
  * @brief Publish vehicle commands
  * @param command   Command code (matches VehicleCommand and MAVLink MAV_CMD codes)
  * @param param1    Command parameter 1
  * @param param2    Command parameter 2
  */
+
+void SITLOffboardLanding::publish_precland_mode(uint16_t command, float param1,
+					      float param2, float param3) const {
+	VehicleCommand msg{};
+	msg.timestamp = timestamp_.load();
+	msg.param1 = param1;
+	msg.param2 = param2;
+	msg.param3 = param3;
+	msg.command = command;
+	msg.target_system = 1;
+	msg.target_component = 1;
+	msg.source_system = 1;
+	msg.source_component = 1;
+	msg.from_external = true;
+
+	vehicle_command_publisher_->publish(msg);
+}
+
 void SITLOffboardLanding::publish_vehicle_command(uint16_t command, float param1,
 					      float param2) const {
 	VehicleCommand msg{};
