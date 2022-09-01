@@ -489,12 +489,11 @@ public:
 
 				trajectory_setpoint_publisher_->publish(msg);
 		};
-
-	//};
-	// Main callback function of the node:
-	
+	// Main thread, marker detection and guided land. Desired 30 FPS
 	timer_ = this->create_wall_timer(16ms, timer_callback);
+	// Trajectory set-point thread
 	timer_offboard_ = this->create_wall_timer(100ms, timer_offboard_callback);
+	// State machine
 	timer_satus_ = this->create_wall_timer(1000ms, timer_status_callback);
 	}
 	void arm() const;
@@ -547,24 +546,6 @@ private:
                 deviation->y_dev = (deviation->y_avg - camera_parameters.res_vertical * .5) 
 				* camera_parameters.fov_vert / camera_parameters.res_vertical;
 	};
-
-	/**
-	 * @brief Publish a trajectory setpoint
-	 *        For this example, it sends a trajectory setpoint to make the
-	 *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
-	 */
-
-	/*
-	//void SITLOffboardLanding::publish_trajectory_setpoint() const {
-	void publish_trajectory_setpoint() const {
-		TrajectorySetpoint msg{};
-		msg.timestamp = timestamp_.load();
-		msg.position = {0.0, 0.0, -3.0};
-		msg.yaw = -3.14; // [-PI:PI]
-
-		trajectory_setpoint_publisher_->publish(msg);
-	}
-	*/
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::TimerBase::SharedPtr timer_satus_;
