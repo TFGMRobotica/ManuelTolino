@@ -136,7 +136,7 @@ std::string gstreamer_writerpipeline(int bitrate, std::string videofilename) {
 std::string writerpipeline = gstreamer_writerpipeline(bitrate, videofilename);
 
 cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
-cv::VideoWriter writer;
+//cv::VideoWriter writer;
 
 /**************** OpenCV parameters *****************/
 cv::Mat image /*,image_copy*/;
@@ -264,7 +264,7 @@ public:
 
 			//This should be done only if Prec Land mode activated
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
-			//cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
+			cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
 
 				// Reset all the detected markers to the new incoming calculated data
 				ids_valid_big = ids;
@@ -435,9 +435,9 @@ public:
 						DEVIATION_BAD = 0; // Do not represent the target indicator on screen
 						//cout << "Bad readings..." << endl;
 				}
-				/*
+
 				if (DEVIATION_BAD == 0) {
-					
+
 					// =======  Dynamic Lines overlay  =========== //
 
 					Scalar hline_Color(0, 255, 0);
@@ -464,9 +464,9 @@ public:
 					std::string overlaytext_devy = str3 + str4;
 					putText(image_copy, overlaytext_devx, text_devx_position,FONT_HERSHEY_SIMPLEX, font_size,font_Color, font_weight_small);
 					putText(image_copy, overlaytext_devy, text_devy_position,FONT_HERSHEY_SIMPLEX, font_size,font_Color, font_weight_small);
-					
+
 					// ============================================ //
-				}*/
+				}
 			
 
 				// Prepare the rest of the message for the autopilot:
@@ -491,7 +491,7 @@ public:
 				this->arucofb_publisher_->publish(arucofb_msg);
 
 				// =======  Static Lines overlay  =========== //
-				/*
+
 				// Horizontal line // 
 				Scalar static_hline_Color(0, 0, 255);
 				Point static_hpt1(0, (camera_parameters.res_vertical / 2));
@@ -521,7 +521,6 @@ public:
 				std::string str6 = std::to_string(navstate);
 				std::string overlaytext_navmode = str5 + str6;
 				putText(image_copy, overlaytext_navmode, text2_position,FONT_HERSHEY_COMPLEX, font_size_big,font_Color_static, font_weight);
-				*/
 				//videowriter.write(image_copy);
 				//writer << image_copy;
                 //cv::imshow("Detected markers", image_copy); 
@@ -546,8 +545,7 @@ public:
 				//cv::cvtColor(image_copy,image_bgr,cv::COLOR_RGB2BGR);
 				//std::cout << "Frame written" << std::endl;
 				//cv::waitKey(5);
-				//int dummy = 1;
-				writer << image;
+				int dummy = 1;
 				};
 		
 
@@ -628,12 +626,12 @@ private:
 int main(int argc, char* argv[])
 {
 	
-	
-/*
-	writer.open("appsrc ! videoconvert ! video/x-raw,width=640,height=480,framerate=30/1 ! jpegenc ! rtpjpegpay ! udpsink host=192.168.0.12 port=5600 sync=false"
+	/*
+
+	//writer.open("appsrc ! videoconvert ! video/x-raw,width=640,height=480,framerate=30/1 ! jpegenc ! rtpjpegpay ! udpsink host=192.168.0.12 port=9999 sync=false"
                 , 0, (double)30, cv::Size(640, 480), true);
 
-*/
+	*/
 	
 	
 	// WRITE TO FILE PIPELINE:
@@ -646,14 +644,14 @@ int main(int argc, char* argv[])
     }
 	*/
 	// UDP STREAM PIPELINE:
-
-	writer.open("appsrc ! videoconvert ! x264enc speed-preset=ultrafast tune=zerolatency bitrate=512 byte-stream=true threads=1 ! mpegtsmux ! queue ! udpsink host=192.168.0.255 port=5600 sync=false"
+/*
+	writer.open("appsrc ! videoconvert ! x264enc speed-preset=ultrafast tune=zerolatency bitrate=512 byte-stream=true threads=1 ! mpegtsmux ! queue ! udpsink host=192.168.0.12 port=5666 sync=false"
                 , 0, (double)30, cv::Size(640, 480), true);
 	    if (!writer.isOpened()) {
         printf("=ERR= can't create video writer\n");
         return -1;
     }
-
+*/
     std::cout << "Using reader pipeline: \n\t" << pipeline << "\n\n\n";
     if(!cap.isOpened()) {
         std::cout<<"Failed to open camera."<<std::endl;

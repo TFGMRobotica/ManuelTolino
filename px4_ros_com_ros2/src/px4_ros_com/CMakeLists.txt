@@ -17,7 +17,7 @@ include(EnableSanitizers)
 # Required since
 #   - "create_subscription()" and "create_publisher()" APIs changed
 #   - eigen3_cmake_module is only available in these distros
-list(APPEND ROS_DISTROS "dashing" "eloquent" "foxy" "galactic" "rolling")
+list(APPEND ROS_DISTROS "dashing" "eloquent" "foxy" "galactic" "humble" "rolling")
 set(ROS_DISTRO)
 if(DEFINED ENV{ROS2_DISTRO})
   set(ROS_DISTRO $ENV{ROS2_DISTRO})
@@ -44,10 +44,11 @@ get_default_rmw_implementation(rmw_implementation)
 find_package("${rmw_implementation}" REQUIRED)
 
 find_package(px4_msgs REQUIRED)
-find_package(image_transport REQUIRED)
-find_package(compressed_image_transport REQUIRED)
+find_package(more_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(compressed_image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 
@@ -77,6 +78,7 @@ function(custom_executable subfolder target)
   ament_target_dependencies(${target}
     rclcpp
     px4_msgs
+    more_interfaces
     image_transport
     compressed_image_transport
     cv_bridge
@@ -105,55 +107,33 @@ custom_executable(examples/listeners sensor_combined_listener)
 custom_executable(examples/listeners vehicle_gps_position_listener)
 custom_executable(examples/advertisers debug_vect_advertiser)
 custom_executable(examples/offboard offboard_control)
-custom_executable(./ multithreadtest)
-custom_executable(opencvtests sitl_camera_display)
-custom_executable(opencvtests sitl_camera_node)
-custom_executable(opencvtests rosimagetest)
-custom_executable(autoland sitl_landing_test)
 custom_executable(autoland sitl_offboard_landing)
-custom_executable(odometry sitl_offboard_odometry)
+custom_executable(ground_operative ground_aruco_noudp)
+custom_executable(ground_operative ground_aruco)
 
-target_link_libraries(debug_vect_advertiser
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES}
-)
-
-target_link_libraries(sitl_camera_display
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES}
-)
-target_link_libraries(sitl_camera_node
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES}
-)
-target_link_libraries(sitl_landing_test
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES}
-)
 target_link_libraries(sitl_offboard_landing
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
-target_link_libraries(rosimagetest
+
+target_link_libraries(ground_aruco_noudp
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
 
-target_link_libraries(sitl_offboard_odometry
+target_link_libraries(ground_aruco
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 )
-
-
 ############
 # Install ##
 ############
 
 # Export information to downstream packages
 if(ROS_DISTRO IN_LIST ROS_DISTROS)
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 px4_msgs compressed_image_transport cv_bridge geometry_msgs sensor_msgs)
+  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 px4_msgs more_interfaces compressed_image_transport cv_bridge geometry_msgs sensor_msgs)
 else()
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs geometry_msgs compressed_image_transport cv_bridge sensor_msgs)
+  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs more_interfaces compressed_image_transport cv_bridge geometry_msgs sensor_msgs)
 endif()
 if (ROS_DISTRO IN_LIST USES_DEPRECATED_EXPORT_API)
   ament_export_interfaces(export_frame_transforms HAS_LIBRARY_TARGET)
