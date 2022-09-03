@@ -2,9 +2,7 @@
 File: sitl_offboard_landing.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
-Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo. Incluye una
-especie de 'state machine' que gobierna el UAV de forma autónoma. Si la camara no detecta el marcador con ID=5 en mitad de la patruya,
-no continuara.
+Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo.
 */
 
 #include <cstdlib>
@@ -52,25 +50,26 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
 
-/// @brief Camera parameters
-struct cam_params{
-	int res_horizontal;
-	int res_vertical;
-	float fov_horiz;
-	float fov_vert;
-};
-/// @brief Calculated prec landing tangential deviation on screen
-struct screen_dev{
-	double x_avg;
-	double y_avg;
-	double x_dev;
-	double y_dev;
-};
+		struct cam_params
+	{
+		int res_horizontal;
+		int res_vertical;
+		float fov_horiz;
+		float fov_vert;
+	};
+
+		struct screen_dev
+	{
+		double x_avg;
+		double y_avg;
+		double x_dev;
+		double y_dev;
+	};
 
 /**************** OpenCV global variables *****************/
-
 //cv_bridge::CvImage::toImageMsg();
  /* Video object */
+ //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
 
 /**************** OpenCV parameters *****************/
@@ -80,22 +79,46 @@ cv::String videoInput = "0";
 /* ArUco Dictionary ID*/
 cv::Ptr<cv::aruco::Dictionary> dictionary =
         cv::aruco::getPredefinedDictionary( \
-        cv::aruco::PREDEFINED_DICTIONARY_NAME(16)); //Selected ORiginalArUco
+        cv::aruco::PREDEFINED_DICTIONARY_NAME(16)); //Selected ArUco
+	/*namespace {
+	const char* about = "Detect ArUco marker images";
+	const char* keys  =
+		"{d        |16    | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, "
+		"DICT_4X4_250=2, DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, "
+		"DICT_5X5_250=6, DICT_5X5_1000=7, DICT_6X6_50=8, DICT_6X6_100=9, "
+		"DICT_6X6_250=10, DICT_6X6_1000=11, DICT_7X7_50=12, DICT_7X7_100=13, "
+		"DICT_7X7_250=14, DICT_7X7_1000=15, DICT_ARUCO_ORIGINAL = 16}"
+		"{h        |false | Print help }"
+		"{v        |<none>| Custom video source, otherwise '0' }"
+		;
+	}*/
+
+
+/* Camera intrinsic matrix */
+const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
+                               << 600,  0.0,         400,
+                                  0.0,       600,    400,
+                                  0.0,       0.0,                  1.0);   
+
+/* Distortion*/
+const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
+const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
+
+
 
 /************ ROS2 Node ************/
 
 auto irlock_data = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
 
-float SWITCH_AGL_ALT = 3.0;
-float SWITCH_AGL_MARGIN = 1.0 ;
-float altitude_agl;
-
 int navstate = -1;
 int LANDING_MARKER_BIG = 4;
 int LANDING_MARKER_SMALL = 6;
+float SWITCH_AGL_ALT = 3.0;
+float SWITCH_AGL_MARGIN = 1.0 ;
 int TRACKBAR_AGL_INPUT = 30;
 int TRACKBAR_AGL_MARGIN = 10;
+float altitude_agl;
 int distance_quality;
 int first_loop = 1;
 int take_off_loop = 0;
@@ -153,12 +176,13 @@ public:
 			std::vector<cv::Vec3d> rvecs, tvecs;
 			cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
 
+			camera_parameters.fov_horiz = 1.570796327;
+			camera_parameters.fov_vert = 1.570796327;
+
 			in_video.grab();
 			in_video.retrieve(image);
 			image.copyTo(image_copy);
 
-			camera_parameters.fov_horiz = 1.570796327;
-			camera_parameters.fov_vert = 1.570796327;
 			camera_parameters.res_horizontal = image_copy.size().width;
 			camera_parameters.res_vertical = image_copy.size().height;
 
@@ -177,21 +201,20 @@ public:
 
 			//===========================================//
 
-			// Reset variables for new incoming data
 			ids_valid_big = ids;
 			corners_valid_big = corners;
 			ids_valid_small = ids;
 			corners_valid_small = corners;
 
-			if (ids.size() > 0){ // Flag for the state machine
+			if (ids.size() > 0){
 				for (int i = 0; i < int(ids.size()); i++){
-					if (int(ids.at(i)) == 5){ 
+					if (int(ids.at(i)) == 5){ // For the state machine
 						TARGET_SURVEY_ONSIGHT = 1;
 					}
 				}
 			}
-			// If at least one marker detected and PREC. LAND mode active
-            if (ids.size() > 0 && navstate == 20){ 
+
+            if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
 				for (int i = 0; i < int(ids.size()); i++){
 					if (int(ids.at(i)) == LANDING_MARKER_BIG){
 						BIG_MARKER_FLAG = 1;
@@ -210,12 +233,13 @@ public:
 				}
 
 				screen_dev deviation, deviation_big, deviation_small;
-
-				// ========  Main precission landing algorithm:   ========= //
+				//cam_params camera_parameters;
 
 				if ((altitude_agl < SWITCH_AGL_ALT) /*&& (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)*/) 
 				//If I'm below transition altitude and I detect Both markers
+				
 				{
+					
 					calcDev(corners_valid_big,0,camera_parameters,&deviation_big);
 					calcDev(corners_valid_small,0,camera_parameters,&deviation_small);
 
@@ -296,10 +320,10 @@ public:
 						DEVIATION_BAD = 1; // Do not represent the target indicator on screen
 						//cout << "Bad readings..." << endl;
 				}
-
 				if (DEVIATION_BAD == 0) {
 
 					// =======  Dynamic Lines overlay  =========== //
+
 
 					Scalar hline_Color(0, 255, 0);
 					Point hpt1(0, y_avg);
@@ -400,43 +424,41 @@ public:
 				OFF_X = 0.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 5){
 				OFF_X = 0.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 10){
 			 	OFF_X = 4.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 15){
 				OFF_X = 4.0 ;
 			 	OFF_Y = 4.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 20){
 				SURVEY_OK = TARGET_SURVEY_ONSIGHT;
 				OFF_X = 0.0 ;
 				OFF_Y = 4.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
-				cout << "Necesito objetivo ID=5 la vista para continuar" << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 25){
 				OFF_X = 0.0 ;
 				OFF_Y = 1.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
 			if (take_off_loop == 30){
 				this->publish_precland_mode(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 9);
-				cout << "Iniciando secuencia de aterrizaje de precisión" << endl;
 			};
 			if (take_off_loop < 31) {
 				cout << "TO Loop Debug value: " << take_off_loop << endl;
@@ -446,8 +468,8 @@ public:
 			};
 		};
 		auto timer_offboard_callback = [this]()->void {
-				// Both topics below should be published together
 				publish_offboard_control_mode();
+				//publish_trajectory_setpoint();
 				TrajectorySetpoint msg{};
 				msg.timestamp = timestamp_.load();
 				msg.position = {OFF_X, OFF_Y, -SWITCH_AGL_ALT};
@@ -530,6 +552,8 @@ private:
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
+
+	//SITLOffboardLanding::interface(float devX, float devY, float alt, int navmode){
 };
 
 /**
