@@ -3,7 +3,7 @@ File: sitl_offboard_landing.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
 Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo. Incluye una
-especie de 'state machine' que gobierna el UAV de forma autónoma. Si la camara no detecta el marcador con ID=5 en mitad de la patruya,
+especie de 'state machine' que gobierna el UAV de forma autonoma. Si la camara no detecta el marcador con ID=5 en mitad de la patruya,
 no continuara.
 */
 
@@ -438,7 +438,7 @@ public:
 			};
 			if (take_off_loop == 30){
 				this->publish_precland_mode(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 9);
-				cout << "Iniciando secuencia de aterrizaje de precisión" << endl;
+				cout << "Iniciando secuencia de aterrizaje de precision" << endl;
 			};
 			if (take_off_loop < 31) {
 				cout << "TO Loop Debug value: " << take_off_loop << endl;
