@@ -182,6 +182,8 @@ public:
 			corners_valid_big = corners;
 			ids_valid_small = ids;
 			corners_valid_small = corners;
+			BIG_MARKER_FLAG = 0; // No big marker detected by default
+			SMALL_MARKER_FLAG = 0; // No small marker detected by default
 
 			if (ids.size() > 0){ // Flag for the state machine
 				for (int i = 0; i < int(ids.size()); i++){
@@ -213,7 +215,7 @@ public:
 
 				// ========  Main precission landing algorithm:   ========= //
 
-				if ((altitude_agl < SWITCH_AGL_ALT) /*&& (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)*/) 
+				if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)) 
 				//If I'm below transition altitude and I detect Both markers
 				{
 					calcDev(corners_valid_big,0,camera_parameters,&deviation_big);
@@ -415,7 +417,7 @@ public:
 				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
 			};
 			if (take_off_loop == 15){
-				OFF_X = 4.0 ;
+				OFF_X = 3.0 ;
 			 	OFF_Y = 4.0 ;
 				OFF_YAW = 0.0 ;
 				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
@@ -423,7 +425,7 @@ public:
 			if (take_off_loop == 20){
 				SURVEY_OK = TARGET_SURVEY_ONSIGHT;
 				OFF_X = 0.0 ;
-				OFF_Y = 4.0 ;
+				OFF_Y = 3.0 ;
 				OFF_YAW = 0.0 ;
 				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
 				cout << "Necesito objetivo ID=5 la vista para continuar" << endl;
