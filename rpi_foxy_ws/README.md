@@ -53,6 +53,7 @@ Una vez conectado mediante UART el puerto TELEM 2 del PX4 y los GPIO UART de la 
 Lanzar el microRTPS client en PX4:
 ```
 micrortps_client start -t UART -d /dev/ttyS2
+micrortps_client start -t UART -d /dev/ttyS0
 ```
 Lanzar el microRTPS agent en la RPi 4:
 ```

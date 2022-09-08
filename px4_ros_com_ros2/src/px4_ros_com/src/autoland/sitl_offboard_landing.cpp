@@ -225,6 +225,10 @@ public:
 				ids_valid_small = ids;
         		corners_valid_small = corners;
 			//};
+			x_avg = NAN;
+			y_avg = NAN;
+			x_dev = NAN;
+			y_dev = NAN;
 
             if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
 				for (int i = 0; i < int(ids.size()); i++){
@@ -383,9 +387,9 @@ public:
 
 				// Publish the message to the autopilot:
 
-				this->publisher_->publish(irlock_msg);
+				
 			};
-
+				this->publisher_->publish(irlock_msg);
 				// =======  Static Lines overlay  =========== //
 
 				Scalar static_hline_Color(0, 0, 255);
@@ -434,7 +438,6 @@ public:
 		};
 
 		auto timer_status_callback = [this]()->void {
-			cout << "Nav State:"<< navstate << endl;
 			if (first_loop == 1){
 				this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
 				this -> arm();
@@ -453,55 +456,55 @@ public:
 				OFF_YAW = -3.14 ;
 				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
-			if (take_off_loop ==5){
+			if (take_off_loop ==10){
 			 	OFF_X = 2.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = -3.14 ;
 				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
-			if (take_off_loop ==10){
+			if (take_off_loop ==15){
 				OFF_X = 2.0 ;
 			 	OFF_Y = 2.0 ;
 				OFF_YAW = -3.14 ;
 				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
-			if (take_off_loop ==15){
+			if (take_off_loop ==20){
 				OFF_X = 2.0 ;
 				OFF_Y = 1.0 ;
-				OFF_YAW = 0.0 ;
+				OFF_YAW = -3.14 ;
 				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
-			if (take_off_loop ==15){
+			if (take_off_loop ==25){
 				OFF_X = 1.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = -3.14 ;
 				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
 			};
-			if (take_off_loop ==20){
+			if (take_off_loop ==30){
 				this->publish_precland_mode(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 9);
 			};
-			if (take_off_loop < 21) {
-				cout << "TO Loop Debug value: " << take_off_loop << endl;
+			if (take_off_loop < 4) {
+				cout << "TO Loop Debug values: " << take_off_loop << endl;
 				take_off_loop++;
 			};
 		};
 
 		auto timer_offboard_callback = [this]()->void {
 				publish_offboard_control_mode();
-				//publish_trajectory_setpoint();
+				
 				TrajectorySetpoint msg{};
 				msg.timestamp = timestamp_.load();
 				msg.position = {OFF_X, OFF_Y, -SWITCH_AGL_ALT};
 				msg.yaw = OFF_YAW; // [-PI:PI]
-
+				cout << "X: " << OFF_X << endl;
+				cout << "Y: " << OFF_Y << endl;
 				trajectory_setpoint_publisher_->publish(msg);
 		};
-
-	//};
-	// Main callback function of the node:
-	
+	// Main thread, marker detection and guided land. Desired 30 FPS
 	timer_ = this->create_wall_timer(16ms, timer_callback);
-	timer_offboard_ = this->create_wall_timer(100ms, timer_offboard_callback);
+	// Trajectory set-point thread
+	timer_offboard_ = this->create_wall_timer(50ms, timer_offboard_callback);
+	// State machine
 	timer_satus_ = this->create_wall_timer(1000ms, timer_status_callback);
 	}
 	void arm() const;
@@ -554,24 +557,6 @@ private:
                 deviation->y_dev = (deviation->y_avg - camera_parameters.res_vertical * .5) 
 				* camera_parameters.fov_vert / camera_parameters.res_vertical;
 	};
-
-	/**
-	 * @brief Publish a trajectory setpoint
-	 *        For this example, it sends a trajectory setpoint to make the
-	 *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
-	 */
-
-	/*
-	//void SITLOffboardLanding::publish_trajectory_setpoint() const {
-	void publish_trajectory_setpoint() const {
-		TrajectorySetpoint msg{};
-		msg.timestamp = timestamp_.load();
-		msg.position = {0.0, 0.0, -3.0};
-		msg.yaw = -3.14; // [-PI:PI]
-
-		trajectory_setpoint_publisher_->publish(msg);
-	}
-	*/
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	rclcpp::TimerBase::SharedPtr timer_satus_;
