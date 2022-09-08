@@ -2,7 +2,9 @@
 File: sitl_offboard_landing.cpp
 Author: Manuel Tolino Contreras
 Description: Este programa permite al UAV aterrizar sobre el marcador con id Determinada usando IRLOCKREPORT. (Aproximacion bidimensional)
-Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo.
+Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo. Incluye una
+especie de 'state machine' que gobierna el UAV de forma autonoma. Si la camara no detecta el marcador con ID=5 en mitad de la patruya,
+no continuara.
 */
 
 #include <cstdlib>
@@ -50,26 +52,25 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
 
-		struct cam_params
-	{
-		int res_horizontal;
-		int res_vertical;
-		float fov_horiz;
-		float fov_vert;
-	};
-
-		struct screen_dev
-	{
-		double x_avg;
-		double y_avg;
-		double x_dev;
-		double y_dev;
-	};
+/// @brief Camera parameters
+struct cam_params{
+	int res_horizontal;
+	int res_vertical;
+	float fov_horiz;
+	float fov_vert;
+};
+/// @brief Calculated prec landing tangential deviation on screen
+struct screen_dev{
+	double x_avg;
+	double y_avg;
+	double x_dev;
+	double y_dev;
+};
 
 /**************** OpenCV global variables *****************/
+
 //cv_bridge::CvImage::toImageMsg();
  /* Video object */
- //cv::VideoCapture in_video; rpicamera
 cv::VideoCapture in_video;
 
 /**************** OpenCV parameters *****************/
@@ -79,55 +80,23 @@ cv::String videoInput = "0";
 /* ArUco Dictionary ID*/
 cv::Ptr<cv::aruco::Dictionary> dictionary =
         cv::aruco::getPredefinedDictionary( \
-        cv::aruco::PREDEFINED_DICTIONARY_NAME(16)); //Selected ArUco
-	/*namespace {
-	const char* about = "Detect ArUco marker images";
-	const char* keys  =
-		"{d        |16    | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, "
-		"DICT_4X4_250=2, DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, "
-		"DICT_5X5_250=6, DICT_5X5_1000=7, DICT_6X6_50=8, DICT_6X6_100=9, "
-		"DICT_6X6_250=10, DICT_6X6_1000=11, DICT_7X7_50=12, DICT_7X7_100=13, "
-		"DICT_7X7_250=14, DICT_7X7_1000=15, DICT_ARUCO_ORIGINAL = 16}"
-		"{h        |false | Print help }"
-		"{v        |<none>| Custom video source, otherwise '0' }"
-		;
-	}*/
-
-
-/* Camera intrinsic matrix */
-const cv::Mat  intrinsic_matrix = (cv::Mat_<float>(3, 3)
-                               << 600,  0.0,         400,
-                                  0.0,       600,    400,
-                                  0.0,       0.0,                  1.0);   
-
-/* Distortion*/
-const cv::Mat  distCoeffs = (cv::Mat_<float>(5, 1) << 0.0, 0.0, 0.0, 0.0, 0.0);
-const cv::Mat  arucodistCoeffs = (cv::Mat_<float>(1, 5) << 0, 0, 0, 0, 0); // ToDelete?
-
-/* NOt necessary as we are using gstreamer pipeline
-in_video.open(source); // id
-in_video.set(cv::CAP_PROP_FPS, 30);
-in_video.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-in_video.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
-in_video.set(cv::CAP_PROP_SATURATION, 0);
-*/
-
-/************  ************/
-
+        cv::aruco::PREDEFINED_DICTIONARY_NAME(16)); //Selected ORiginalArUco
 
 /************ ROS2 Node ************/
 
 auto irlock_data = px4_msgs::msg::IrlockReport();
 auto irlock_msg = px4_msgs::msg::IrlockReport();
 
-int navstate = -1;
-int LANDING_MARKER_BIG = 4;
-int LANDING_MARKER_SMALL = 6;
 float SWITCH_AGL_ALT = 3.0;
 float SWITCH_AGL_MARGIN = 1.0 ;
+float altitude_agl;
+
+int navstate = -1;
+int LANDING_MARKER_BIG = 4;
+int armedstate = 0;
+int LANDING_MARKER_SMALL = 6;
 int TRACKBAR_AGL_INPUT = 30;
 int TRACKBAR_AGL_MARGIN = 10;
-float altitude_agl;
 int distance_quality;
 int first_loop = 1;
 int take_off_loop = 0;
@@ -165,7 +134,8 @@ public:
 		vehiclestatus_sub_ =
 			this->create_subscription<px4_msgs::msg::VehicleStatus>("fmu/vehicle_status/out", 10,
 				[this](const px4_msgs::msg::VehicleStatus::UniquePtr navstatmsg) {
-					navstate = navstatmsg->nav_state;
+					navstate = navstatmsg->nav_state; // 20 = precland // 14 = offboard
+					armedstate = navstatmsg->arming_state; //armed = 2
 				});
 		distancesensor_sub_ =
 			this->create_subscription<px4_msgs::msg::DistanceSensor>("fmu/distance_sensor/out", 10,
@@ -177,7 +147,6 @@ public:
 		// Main callback of the node:
 		auto timer_callback = [this]()->void {
 
-
 			cv::Mat image /*,image_copy*/;
 			std::vector<int> ids;
 			std::vector<std::vector<cv::Point2f>> corners;
@@ -186,47 +155,47 @@ public:
 			std::vector<cv::Vec3d> rvecs, tvecs;
 			cv::Mat image_copy(1200, 1200, CV_8UC3, cv::Scalar(0, 0, 0));
 
-			camera_parameters.fov_horiz = 1.570796327;
-			camera_parameters.fov_vert = 1.570796327;
-
 			in_video.grab();
 			in_video.retrieve(image);
 			image.copyTo(image_copy);
 
+			camera_parameters.fov_horiz = 1.570796327;
+			camera_parameters.fov_vert = 1.570796327;
 			camera_parameters.res_horizontal = image_copy.size().width;
 			camera_parameters.res_vertical = image_copy.size().height;
 
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
 
+			// =====  PREC. LAND Monitor trackbar  ===== //
+
 			createTrackbar("Transition altitude (dm):", "Detected markers", &TRACKBAR_AGL_INPUT, 70);
 			createTrackbar("Altitude margin (dm):", "Detected markers", &TRACKBAR_AGL_MARGIN, 30);
-
 			if (TRACKBAR_AGL_INPUT <= TRACKBAR_AGL_MARGIN) {
 				TRACKBAR_AGL_INPUT = TRACKBAR_AGL_MARGIN + 1;
 			}
-
 			SWITCH_AGL_ALT = float (TRACKBAR_AGL_INPUT / 10.0);
 			SWITCH_AGL_MARGIN = float (TRACKBAR_AGL_INPUT / 10.0);
 
-			//if (navstate == 20 /*&& in_video.isOpened()*/){
-				/* MOVED OUTSIDE FOR DEBUGGING
-				in_video.grab();
-				in_video.retrieve(image);
-				image.copyTo(image_copy);
-				cv::aruco::detectMarkers(image, dictionary, corners, ids);
-				cv::aruco::drawDetectedMarkers(image_copy, corners, ids);
-				//imshow("cam", image_copy); 
-				*/
+			//===========================================//
 
-			// Reset all the detected markers to the new incoming calculated data
-				ids_valid_big = ids;
-        		corners_valid_big = corners;
-				ids_valid_small = ids;
-        		corners_valid_small = corners;
-			//};
+			// Reset variables for new incoming data
+			ids_valid_big = ids;
+			corners_valid_big = corners;
+			ids_valid_small = ids;
+			corners_valid_small = corners;
+			BIG_MARKER_FLAG = 0; // No big marker detected by default
+			SMALL_MARKER_FLAG = 0; // No small marker detected by default
 
-            if (ids.size() > 0 && navstate == 20){ // If at least one marker detected
+			if (ids.size() > 0){ // Flag for the state machine
+				for (int i = 0; i < int(ids.size()); i++){
+					if (int(ids.at(i)) == 5){ 
+						TARGET_SURVEY_ONSIGHT = 1;
+					}
+				}
+			}
+			// If at least one marker detected and PREC. LAND mode active
+            if (ids.size() > 0 && navstate == 20){ 
 				for (int i = 0; i < int(ids.size()); i++){
 					if (int(ids.at(i)) == LANDING_MARKER_BIG){
 						BIG_MARKER_FLAG = 1;
@@ -234,8 +203,6 @@ public:
 						corners_valid_big.resize(1);
 						ids_valid_big[0]=ids.at(i);
 						corners_valid_big[0]=corners.at(i);
-						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, 
-						//intrinsic_matrix, distCoeffs, rvecs, tvecs);
 					};
 					if (int(ids.at(i)) == LANDING_MARKER_SMALL){
 						SMALL_MARKER_FLAG = 1;
@@ -243,20 +210,16 @@ public:
 						corners_valid_small.resize(1);
 						ids_valid_small[0]=ids.at(i);
 						corners_valid_small[0]=corners.at(i);
-						//cv::aruco::estimatePoseSingleMarkers(corners_valid, 0.05, 
-						//intrinsic_matrix, distCoeffs, rvecs, tvecs);
 					}
 				}
 
 				screen_dev deviation, deviation_big, deviation_small;
-				//cam_params camera_parameters;
 
+				// ========  Main precission landing algorithm:   ========= //
 
-				if ((altitude_agl < SWITCH_AGL_ALT) /*&& (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)*/) 
+				if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 1)) 
 				//If I'm below transition altitude and I detect Both markers
-				
 				{
-					
 					calcDev(corners_valid_big,0,camera_parameters,&deviation_big);
 					calcDev(corners_valid_small,0,camera_parameters,&deviation_small);
 
@@ -270,6 +233,7 @@ public:
 						y_avg = ratio * deviation_big.y_avg + (1 - ratio)* deviation_small.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl < (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) { 
 						calcDev(corners_valid_small,0,camera_parameters,&deviation);
@@ -279,6 +243,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 					} else if (altitude_agl > (SWITCH_AGL_ALT-SWITCH_AGL_MARGIN)) {
 						calcDev(corners_valid_big,0,camera_parameters,&deviation);
@@ -288,6 +253,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 					}
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1 && SMALL_MARKER_FLAG == 0)){
@@ -299,6 +265,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl < SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 0 && SMALL_MARKER_FLAG == 1)){
 				// Also if I only detect the small marker below the transition altitude, only take readings from it
@@ -309,6 +276,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 				} else if ((altitude_agl > SWITCH_AGL_ALT) && (BIG_MARKER_FLAG == 1)){
 				// If I'm higher than the transition altitude and I have big marker on sight...
@@ -319,6 +287,7 @@ public:
 						y_avg = deviation.y_avg;
 						irlock_data.pos_x = x_dev;
                 		irlock_data.pos_y = y_dev;
+						DEVIATION_BAD = 0; 
 						//cout << x_dev << "  " << y_dev << endl;
 				} else {
 					// In any other case no data should be published to the autopilot
@@ -335,7 +304,6 @@ public:
 				if (DEVIATION_BAD == 0) {
 
 					// =======  Dynamic Lines overlay  =========== //
-
 
 					Scalar hline_Color(0, 255, 0);
 					Point hpt1(0, y_avg);
@@ -379,7 +347,7 @@ public:
 
 				this->publisher_->publish(irlock_msg);
 			};
-
+				
 				// =======  Static Lines overlay  =========== //
 
 				Scalar static_hline_Color(0, 0, 255);
@@ -387,7 +355,6 @@ public:
 				Point static_hpt2(camera_parameters.res_horizontal , (camera_parameters.res_horizontal / 2));
 				line(image_copy,static_hpt1,static_hpt2,static_hline_Color,1);
 
-				
 				Point static_vpt1((camera_parameters.res_vertical / 2), 0);
 				Point static_vpt2((camera_parameters.res_vertical / 2), camera_parameters.res_vertical);
 				line(image_copy,static_vpt1,static_vpt2,static_hline_Color,1);
@@ -426,7 +393,6 @@ public:
 				img_msg = cv_bridge::CvImage(hdr, "bgr8", image_copy).toCompressedImageMsg();
 				this->image_pub_->publish(*img_msg);
 		};
-
 		auto timer_status_callback = [this]()->void {
 			if (first_loop == 1){
 				this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
@@ -434,54 +400,66 @@ public:
 				cout << "Orden de armado enviada" << endl;
 				first_loop = 0;
 			};
-			if (take_off_loop ==3){
-				OFF_X = 0.0 ;
-				OFF_Y = 0.0 ;
-				OFF_YAW = 0.0 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
-			};
-			if (take_off_loop ==5){
+			if (take_off_loop == 3){
 				OFF_X = 0.0 ;
 				OFF_Y = 0.0 ;
 				OFF_YAW = -3.14 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
 			};
-			if (take_off_loop ==5){
-			 	OFF_X = 2.0 ;
+			if (take_off_loop == 5){
+				OFF_X = 0.0 ;
 				OFF_Y = 0.0 ;
-				OFF_YAW = -3.14 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
-			};
-			if (take_off_loop ==10){
-				OFF_X = 2.0 ;
-			 	OFF_Y = 2.0 ;
-				OFF_YAW = -3.14 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
-			};
-			if (take_off_loop ==15){
-				OFF_X = 2.0 ;
-				OFF_Y = 1.0 ;
 				OFF_YAW = 0.0 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
 			};
-			if (take_off_loop ==15){
-				OFF_X = 1.0 ;
+			if (take_off_loop == 10){
+			 	OFF_X = 4.0 ;
 				OFF_Y = 0.0 ;
-				OFF_YAW = -3.14 ;
-				cout << "ALtitude requested: " << SWITCH_AGL_ALT << endl;
+				OFF_YAW = 0.0 ;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
 			};
-			if (take_off_loop ==20){
+			if (take_off_loop == 20){
+				OFF_X = 3.0 ;
+			 	OFF_Y = 4.0 ;
+				OFF_YAW = 0.0 ;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+			};
+			if (take_off_loop == 30){
+				SURVEY_OK = TARGET_SURVEY_ONSIGHT;
+				OFF_X = 0.0 ;
+				OFF_Y = 3.0 ;
+				OFF_YAW = 0.0 ;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+				cout << "Necesito objetivo ID=5 la vista para continuar" << endl;
+			};
+			if (take_off_loop == 40){
+				OFF_X = 0.0 ;
+				OFF_Y = -1.0 ;
+				OFF_YAW = 0.0 ;
+				cout << "Go To X = " << OFF_X << " Y = " << OFF_Y << " Z = " << SWITCH_AGL_ALT << " PSI = " << OFF_YAW << endl;
+			};
+			if (take_off_loop == 50){
 				this->publish_precland_mode(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 9);
+				cout << "Iniciando secuencia de aterrizaje de precision" << endl;
 			};
-			if (take_off_loop < 21) {
+			if (take_off_loop < 51) {
+				int SURVEY_FLAG = 0;
+				int ARMED_FLAG = 0;
 				cout << "TO Loop Debug value: " << take_off_loop << endl;
-				take_off_loop++;
+				if (!((take_off_loop == 30) && !SURVEY_OK)){
+					SURVEY_FLAG = 1;
+				}
+				/*if (!((take_off_loop == 2) & !(armedstate == 2))){
+					ARMED_FLAG = 1;
+				}*/
+				if(SURVEY_FLAG){
+					take_off_loop++;
+				}
 			};
 		};
-
 		auto timer_offboard_callback = [this]()->void {
+				// Both topics below should be published together
 				publish_offboard_control_mode();
-				//publish_trajectory_setpoint();
 				TrajectorySetpoint msg{};
 				msg.timestamp = timestamp_.load();
 				msg.position = {OFF_X, OFF_Y, -SWITCH_AGL_ALT};
@@ -510,6 +488,8 @@ private:
 	float OFF_X = 0.0 ;
 	float OFF_Y = 0.0 ;
 	float OFF_YAW = 0.0 ;
+	int TARGET_SURVEY_ONSIGHT = 0;
+	int SURVEY_OK = 0;
 
 	cam_params camera_parameters;
 	void publish_vehicle_command(uint16_t command, float param1 = 0.0,
@@ -562,8 +542,6 @@ private:
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehiclestatus_sub_;
 	rclcpp::Subscription<px4_msgs::msg::DistanceSensor>::SharedPtr distancesensor_sub_;    
     std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
-
-	//SITLOffboardLanding::interface(float devX, float devY, float alt, int navmode){
 };
 
 /**
