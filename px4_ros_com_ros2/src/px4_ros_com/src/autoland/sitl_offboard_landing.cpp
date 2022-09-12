@@ -5,6 +5,12 @@ Description: Este programa permite al UAV aterrizar sobre el marcador con id Det
 Se utiliza sensor de distancia para tener feedback de la altitud y seleccionar asi segundo marcador mas pequeno al estar mas bajo. Incluye una
 especie de 'state machine' que gobierna el UAV de forma autonoma. Si la camara no detecta el marcador con ID=5 en mitad de la patruya,
 no continuara.
+
+compatible stack:
+git checkout deb938fceaa79b927ae0f622d8b2b8c4ad10d391
+git PX4 SHA: 79a34b5aed8ee9eb10afda3ae83f1be02ad897a8
+ROS_COM : 042d41ab66f25e161cf1cd449ba06727edfdc566
+MSGS: be36a7dc24544495939e1a1d2d85843bebaa763c
 */
 
 #include <cstdlib>
